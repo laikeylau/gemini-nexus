@@ -1,7 +1,7 @@
-import { build } from 'esbuild';
 import { cpSync, existsSync, mkdirSync, rmSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { build } from 'vite';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -14,26 +14,63 @@ const copyTargets = [
   'metadata.json',
 ];
 
-async function bundleScripts() {
-  await build({
-    entryPoints: [path.resolve(root, 'background/index.js')],
-    outfile: path.resolve(dist, 'background/index.js'),
-    bundle: true,
-    format: 'esm',
-    platform: 'browser',
-    target: ['chrome120'],
-    logLevel: 'silent',
-  });
-
-  await build({
-    entryPoints: [path.resolve(root, 'content/main.js')],
-    outfile: path.resolve(dist, 'content/index.js'),
-    bundle: true,
+const runtimeBundles = [
+  {
+    entry: path.resolve(root, 'background/index.js'),
+    outputFile: 'background/index.js',
+    format: 'es',
+  },
+  {
+    entry: path.resolve(root, 'content/main.js'),
+    outputFile: 'content/main.js',
     format: 'iife',
-    platform: 'browser',
-    target: ['chrome120'],
-    logLevel: 'silent',
-  });
+    name: 'GeminiNexusContent',
+  },
+];
+
+const requiredDistFiles = [
+  'background/index.js',
+  'content/main.js',
+  'manifest.json',
+  'sidepanel/index.html',
+  'sandbox/index.html',
+];
+
+async function bundleRuntimeScripts() {
+  for (const bundle of runtimeBundles) {
+    await build({
+      configFile: false,
+      logLevel: 'silent',
+      resolve: {
+        alias: {
+          '@': path.resolve(root, '.'),
+        },
+      },
+      build: {
+        emptyOutDir: false,
+        outDir: dist,
+        target: 'chrome120',
+        lib: {
+          entry: bundle.entry,
+          formats: [bundle.format],
+          name: bundle.name,
+          fileName: () => bundle.outputFile,
+        },
+        rollupOptions: {
+          output: {
+            inlineDynamicImports: true,
+          },
+        },
+      },
+    });
+  }
+}
+
+function ensureRequiredFiles() {
+  const missing = requiredDistFiles.filter((file) => !existsSync(path.resolve(dist, file)));
+  if (missing.length > 0) {
+    throw new Error(`missing required build outputs: ${missing.join(', ')}`);
+  }
 }
 
 if (!existsSync(dist)) {
@@ -42,7 +79,7 @@ if (!existsSync(dist)) {
 
 rmSync(path.resolve(dist, 'background'), { recursive: true, force: true });
 rmSync(path.resolve(dist, 'content'), { recursive: true, force: true });
-await bundleScripts();
+await bundleRuntimeScripts();
 
 for (const target of copyTargets) {
   const source = path.resolve(root, target);
@@ -52,5 +89,7 @@ for (const target of copyTargets) {
   mkdirSync(path.dirname(destination), { recursive: true });
   cpSync(source, destination, { recursive: true });
 }
+
+ensureRequiredFiles();
 
 console.log('Packaged extension assets into dist/');

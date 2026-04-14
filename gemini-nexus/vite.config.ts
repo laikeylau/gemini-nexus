@@ -19,6 +19,7 @@ export default defineConfig({
   },
   build: {
     emptyOutDir: true,
+    target: 'chrome120',
     rollupOptions: {
       input: {
         sidepanel: path.resolve(__dirname, 'sidepanel/index.html'),
