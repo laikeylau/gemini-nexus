@@ -12,7 +12,7 @@ const MAX_VISIBLE_SOURCES = 2;
 // - string: single user image (URL/Base64)
 // - array of strings: multiple user images
 // - array of objects {url, alt}: AI generated images
-export function appendMessage(container, text, role, attachment = null, thoughts = null, sources = null) {
+export function appendMessage(container, text, role, attachment = null, thoughts = null, sources = null, options = {}) {
     const div = document.createElement('div');
     div.className = `msg ${role}`;
     
@@ -65,6 +65,7 @@ export function appendMessage(container, text, role, attachment = null, thoughts
     let thoughtsDiv = null;
     let thoughtsContent = null;
     let sourcesDiv = null;
+    let editCancel = null;
 
     const buildSourcesElement = (sourceList) => {
         if (role !== 'ai' || !Array.isArray(sourceList) || sourceList.length === 0) {
@@ -136,7 +137,7 @@ export function appendMessage(container, text, role, attachment = null, thoughts
     };
 
     // Allow creating empty AI bubbles for streaming
-    if (currentText || currentThoughts || role === 'ai') {
+    if (currentText || currentThoughts || role === 'ai' || role === 'user') {
         
         // --- Thinking Process (Optional) ---
         if (role === 'ai') {
@@ -162,6 +163,7 @@ export function appendMessage(container, text, role, attachment = null, thoughts
         }
 
         contentDiv = document.createElement('div');
+        contentDiv.className = 'msg-content';
         renderContent(contentDiv, currentText, role);
         div.appendChild(contentDiv);
 
@@ -212,6 +214,138 @@ export function appendMessage(container, text, role, attachment = null, thoughts
         });
 
         div.appendChild(copyBtn);
+
+        if (role === 'user' && typeof options.onEdit === 'function') {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-btn';
+            editBtn.title = t('editMessage');
+            editBtn.setAttribute('aria-label', t('editMessage'));
+            editBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>';
+
+            editBtn.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (editCancel) return;
+
+                div.classList.add('editing');
+                contentDiv.style.display = 'none';
+                copyBtn.style.display = 'none';
+                editBtn.style.display = 'none';
+
+                const editor = document.createElement('div');
+                editor.className = 'message-edit';
+
+                const textarea = document.createElement('textarea');
+                textarea.className = 'message-edit-input';
+                textarea.value = currentText;
+                textarea.rows = Math.max(2, Math.min(8, currentText.split('\n').length));
+
+                const actions = document.createElement('div');
+                actions.className = 'message-edit-actions';
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.type = 'button';
+                cancelBtn.className = 'message-edit-cancel';
+                cancelBtn.textContent = t('cancelEdit');
+                cancelBtn.title = t('cancelEdit');
+
+                const saveBtn = document.createElement('button');
+                saveBtn.type = 'button';
+                saveBtn.className = 'message-edit-save';
+                saveBtn.title = t('saveEdit');
+                saveBtn.setAttribute('aria-label', t('saveEdit'));
+                saveBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+
+                actions.appendChild(cancelBtn);
+                actions.appendChild(saveBtn);
+                editor.appendChild(textarea);
+                editor.appendChild(actions);
+                div.insertBefore(editor, copyBtn);
+
+                const cleanup = () => {
+                    document.removeEventListener('pointerdown', handleOutsidePointer, true);
+                    document.removeEventListener('keydown', handleDocumentKey, true);
+                    editor.remove();
+                    contentDiv.style.display = '';
+                    copyBtn.style.display = '';
+                    editBtn.style.display = '';
+                    div.classList.remove('editing');
+                    editCancel = null;
+                };
+
+                const cancel = () => {
+                    cleanup();
+                };
+
+                let isSaving = false;
+
+                const save = async () => {
+                    if (isSaving) return;
+                    const nextText = textarea.value.trim();
+                    isSaving = true;
+                    saveBtn.disabled = true;
+
+                    try {
+                        const accepted = await options.onEdit(nextText);
+                        if (accepted !== false) {
+                            cleanup();
+                            return;
+                        }
+                    } catch (err) {
+                        console.error('Failed to edit message:', err);
+                    } finally {
+                        isSaving = false;
+                        saveBtn.disabled = false;
+                    }
+                };
+
+                function handleOutsidePointer(pointerEvent) {
+                    if (!div.contains(pointerEvent.target)) {
+                        cancel();
+                    }
+                }
+
+                function handleDocumentKey(keyEvent) {
+                    if (keyEvent.key === 'Escape') {
+                        keyEvent.preventDefault();
+                        cancel();
+                    }
+                    if ((keyEvent.metaKey || keyEvent.ctrlKey) && keyEvent.key === 'Enter') {
+                        keyEvent.preventDefault();
+                        save();
+                    }
+                }
+
+                cancelBtn.addEventListener('click', (clickEvent) => {
+                    clickEvent.preventDefault();
+                    clickEvent.stopPropagation();
+                    cancel();
+                });
+
+                saveBtn.addEventListener('click', (clickEvent) => {
+                    clickEvent.preventDefault();
+                    clickEvent.stopPropagation();
+                    save();
+                });
+
+                textarea.addEventListener('input', () => {
+                    textarea.style.height = 'auto';
+                    textarea.style.height = `${textarea.scrollHeight}px`;
+                });
+
+                editCancel = cancel;
+
+                setTimeout(() => {
+                    document.addEventListener('pointerdown', handleOutsidePointer, true);
+                    document.addEventListener('keydown', handleDocumentKey, true);
+                    textarea.focus();
+                    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+                    textarea.dispatchEvent(new Event('input'));
+                }, 0);
+            });
+
+            div.appendChild(editBtn);
+        }
     }
 
     container.appendChild(div);

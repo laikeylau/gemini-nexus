@@ -74,6 +74,8 @@ export class SessionManager {
             if (role === 'user' && typeof attachment === 'string') {
                 // Backward compatibility: user attachment is usually a single base64 string
                 msg.image = attachment; 
+            } else if (role === 'user' && Array.isArray(attachment) && attachment.length > 0) {
+                msg.image = attachment;
             } else if (role === 'ai' && Array.isArray(attachment) && attachment.length > 0) {
                 // AI generated images
                 msg.generatedImages = attachment;
@@ -84,6 +86,37 @@ export class SessionManager {
             return true;
         }
         return false;
+    }
+
+    editUserMessageAndTruncate(id, messageIndex, text) {
+        const session = this.sessions.find(s => s.id === id);
+        if (!session || !Array.isArray(session.messages)) return null;
+
+        const target = session.messages[messageIndex];
+        if (!target || target.role !== 'user') return null;
+
+        const previousMessages = session.messages.slice(0, messageIndex);
+        const editedMessage = {
+            ...target,
+            text
+        };
+
+        session.messages = [
+            ...previousMessages,
+            editedMessage
+        ];
+        session.context = null;
+        session.timestamp = Date.now();
+
+        if (messageIndex === 0) {
+            this.updateTitle(id, text);
+        }
+
+        return {
+            session,
+            message: editedMessage,
+            previousMessages
+        };
     }
 
     updateContext(id, context) {

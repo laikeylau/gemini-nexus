@@ -5,6 +5,13 @@ import { sendWebMessage } from '../../../services/providers/web.js';
 import { sendOpenAIMessage } from '../../../services/providers/openai_compatible.js';
 import { getHistory } from './history_store.js';
 
+function getRequestHistory(request) {
+    if (Array.isArray(request.historyOverride)) {
+        return request.historyOverride;
+    }
+    return null;
+}
+
 export class RequestDispatcher {
     constructor(authManager) {
         this.auth = authManager;
@@ -24,7 +31,7 @@ export class RequestDispatcher {
         if (!settings.apiKey) throw new Error("API Key is missing. Please check settings.");
         
         // Fetch History
-        let history = await getHistory(request.sessionId);
+        let history = getRequestHistory(request) || await getHistory(request.sessionId);
 
         const response = await sendOfficialMessage(
             request.text, 
@@ -71,7 +78,7 @@ export class RequestDispatcher {
             model: targetModel
         };
 
-        let history = await getHistory(request.sessionId);
+        let history = getRequestHistory(request) || await getHistory(request.sessionId);
 
         const response = await sendOpenAIMessage(
             request.text,
@@ -100,6 +107,10 @@ export class RequestDispatcher {
         
         let attemptCount = 0;
         const maxAttempts = Math.max(3, this.auth.accountIndices.length > 1 ? 3 : 2);
+
+        if (getRequestHistory(request)) {
+            throw new Error("History editing is not supported for Gemini Web Client.");
+        }
 
         // Concatenate System Instruction for Web Client
         let fullText = request.text;

@@ -106,6 +106,8 @@ export class SettingsController {
     }
 
     saveSettings(data) {
+        const previousProvider = this.connectionData.provider || (this.connectionData.useOfficialApi ? 'official' : 'web');
+
         // Shortcuts
         this.shortcuts = data.shortcuts;
         saveShortcutsToStorage(this.shortcuts);
@@ -150,7 +152,9 @@ export class SettingsController {
 
         // Notify app of critical setting changes
         if (this.callbacks.onSettingsChanged) {
-            this.callbacks.onSettingsChanged(this.connectionData);
+            this.callbacks.onSettingsChanged(this.connectionData, {
+                providerChanged: previousProvider !== this.connectionData.provider
+            });
         }
     }
 

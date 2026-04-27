@@ -1,11 +1,19 @@
 
 // background/handlers/session/prompt_handler.js
-import { appendAiMessage, appendUserMessage } from '../../managers/history_manager.js';
+import { appendAiMessage, appendUserMessage, replaceSessionSnapshot } from '../../managers/history_manager.js';
 import { PromptBuilder } from './prompt/builder.js';
 import { ToolExecutor } from './prompt/tool_executor.js';
 
 // Helper to prevent rapid-fire requests that trigger rate limits
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function getStoredProvider() {
+    const stored = await chrome.storage.local.get([
+        'geminiProvider',
+        'geminiUseOfficialApi'
+    ]);
+    return stored.geminiProvider || (stored.geminiUseOfficialApi === true ? 'official' : 'web');
+}
 
 export class PromptHandler {
     constructor(sessionManager, controlManager, mcpManager) {
@@ -35,6 +43,14 @@ export class PromptHandler {
             };
 
             try {
+                if (request.sessionSnapshot) {
+                    const provider = await getStoredProvider();
+                    if (provider === 'web') {
+                        throw new Error("History editing is not supported for Gemini Web Client.");
+                    }
+                    await replaceSessionSnapshot(request.sessionSnapshot);
+                }
+
                 // AUTO-LOCK: If browser control enabled and no tab locked, lock to active tab
                 if (request.enableBrowserControl && this.controlManager) {
                     this.controlManager.setOwnerSidePanelTabId(request.sidePanelTabId || null);

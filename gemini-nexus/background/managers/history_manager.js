@@ -150,3 +150,40 @@ export async function appendUserMessage(sessionId, text, images = null) {
         return false;
     }
 }
+
+/**
+ * Replaces a session snapshot before generation starts.
+ * Keeps background storage aligned with UI-side edits before AI replies are appended.
+ * @param {object} sessionSnapshot
+ */
+export async function replaceSessionSnapshot(sessionSnapshot) {
+    try {
+        if (!sessionSnapshot || !sessionSnapshot.id || !Array.isArray(sessionSnapshot.messages)) {
+            return false;
+        }
+
+        const { geminiSessions = [] } = await chrome.storage.local.get(['geminiSessions']);
+        const sessionIndex = geminiSessions.findIndex(s => s.id === sessionSnapshot.id);
+        const nextSession = {
+            ...sessionSnapshot,
+            timestamp: sessionSnapshot.timestamp || Date.now()
+        };
+
+        if (sessionIndex !== -1) {
+            geminiSessions.splice(sessionIndex, 1);
+        }
+
+        geminiSessions.unshift(nextSession);
+        await chrome.storage.local.set({ geminiSessions });
+
+        chrome.runtime.sendMessage({
+            action: "SESSIONS_UPDATED",
+            sessions: geminiSessions
+        }).catch(() => {});
+
+        return true;
+    } catch (e) {
+        console.error("Error replacing session snapshot:", e);
+        return false;
+    }
+}

@@ -34,6 +34,10 @@ export class AppController {
         // Initialize Sub-Controllers
         this.sessionFlow = new SessionFlowController(sessionManager, uiController, this);
         this.prompt = new PromptController(sessionManager, uiController, imageManager, this);
+
+        document.addEventListener('gemini-provider-changed', () => {
+            if (!this.isGenerating) this.rerender();
+        });
     }
 
     setCaptureMode(mode) {

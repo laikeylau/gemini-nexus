@@ -18,8 +18,11 @@ export class UIController {
         // Settings and Viewer now self-manage their DOM
         this.settings = new SettingsController({
             onOpen: () => this.sidebar.close(),
-            onSettingsChanged: (connectionSettings) => {
+            onSettingsChanged: (connectionSettings, meta = {}) => {
                 this.updateModelList(connectionSettings);
+                if (meta.providerChanged) {
+                    document.dispatchEvent(new CustomEvent('gemini-provider-changed'));
+                }
             }
         });
         

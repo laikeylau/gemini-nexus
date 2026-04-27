@@ -19,7 +19,6 @@ const requiredPaths = [
   'dist/assets',
   'dist/sidepanel/index.html',
   'dist/sandbox/index.html',
-  'sandbox/theme_init.js',
 ];
 
 async function ensureExists(relativePath) {
@@ -73,7 +72,6 @@ async function main() {
     copyIntoPackage('dist/assets', 'assets'),
     copyIntoPackage('dist/sidepanel/index.html', 'sidepanel/index.html'),
     copyIntoPackage('dist/sandbox/index.html', 'sandbox/index.html'),
-    copyIntoPackage('sandbox/theme_init.js', 'sandbox/theme_init.js'),
   ]);
 
   await removeJunkFiles(packageDir);
