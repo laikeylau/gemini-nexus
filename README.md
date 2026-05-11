@@ -135,7 +135,7 @@ Gemini Nexus 可以选择连接到一个或多个外部 MCP 服务器（通过 *
 
 ### 仓库结构
 
-本仓库根目录用于放置文档、许可证、CI 配置和展示素材；可运行的 Chrome 扩展源码位于 `gemini-nexus/` 子目录。所有 `npm` 命令都应在该子目录中执行，GitHub Actions 也以该目录作为构建工作目录。
+本仓库根目录就是可运行的 Chrome 扩展项目根目录。`package.json`、`manifest.json`、Vite 配置、源码、测试和打包脚本都位于根目录；跨运行域共享的工具代码位于 `shared/`。
 
 ### 安装步骤
 1.  从 [Releases](https://github.com/Maomaoxion/gemini-nexus/releases) 下载最新 ZIP 包并解压。
@@ -144,12 +144,11 @@ Gemini Nexus 可以选择连接到一个或多个外部 MCP 服务器（通过 *
 
 ### 从源码构建/打包
 ```bash
-cd gemini-nexus
 npm install
 npm run package:extension
 ```
 
-打包完成后，Chrome 的 **“加载已解压的扩展程序”** 应选择 `gemini-nexus/artifacts/chrome-extension`。开发调试时也可以直接加载源码目录 `gemini-nexus/`；`npm run build` 生成的 `dist/` 只是 Vite UI 构建产物，不是完整扩展目录。
+打包完成后，Chrome 的 **“加载已解压的扩展程序”** 应选择 `artifacts/chrome-extension`。开发调试时也可以直接加载仓库根目录；`npm run build` 生成的 `dist/` 只是 Vite UI 构建产物，不是完整扩展目录。
 
 ### 技术栈
 *   **构建工具**：Vite + TypeScript
