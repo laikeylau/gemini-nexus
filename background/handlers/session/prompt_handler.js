@@ -327,12 +327,6 @@ export class PromptHandler {
                         // We skip purely observational tools to save processing/tokens if they don't change state.
                         const skipSnapshotTools = [
                             'take_snapshot',
-                            'take_screenshot',
-                            'get_logs',
-                            'list_network_requests',
-                            'get_network_request',
-                            'performance_start_trace',
-                            'performance_stop_trace',
                             'list_pages',
                         ];
 

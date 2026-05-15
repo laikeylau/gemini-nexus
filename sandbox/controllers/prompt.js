@@ -2,7 +2,7 @@
 import { appendMessage } from '../render/message.js';
 import { sendToBackground, saveSessionsToStorage } from '../../shared/messaging/index.js';
 import { t } from '../core/i18n.js';
-import { normalizeUserAttachments } from '../../shared/attachments.js';
+import { normalizeUserAttachments } from '../../shared/attachments/index.js';
 
 export class PromptController {
     constructor(sessionManager, uiController, imageManager, appController) {

@@ -1,5 +1,5 @@
 // background/messages.js
-import { SessionMessageHandler } from './handlers/session.js';
+import { SessionMessageHandler } from './handlers/session/index.js';
 import { UIMessageHandler } from './handlers/ui.js';
 
 /**

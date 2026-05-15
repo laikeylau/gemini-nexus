@@ -154,6 +154,62 @@ describe('BrowserControlManager native tab group indicator', () => {
         expect(manager.lockedTabId).toBe(99);
     });
 
+    it('runs page-management tools even when the current tab cannot attach a debugger', async () => {
+        const manager = new BrowserControlManager();
+        manager.ensureConnection = vi.fn(() => Promise.resolve(false));
+        manager.dispatcher.dispatch = vi.fn(() =>
+            Promise.resolve('0: Extensions (chrome://extensions/)')
+        );
+        manager.lockedTabId = 42;
+
+        const result = await manager.execute({ name: 'list_pages', args: {} });
+
+        expect(result).toBe('0: Extensions (chrome://extensions/)');
+        expect(manager.dispatcher.dispatch).toHaveBeenCalledWith('list_pages', {});
+    });
+
+    it('keeps the intended target on the connection when locking without debugger attachment', () => {
+        const manager = new BrowserControlManager();
+
+        manager.setTargetTab(42);
+
+        expect(manager.connection.targetTabId).toBe(42);
+    });
+
+    it('does not force background popup tabs into the existing native tab group', async () => {
+        chrome.tabs.group = vi.fn(() => Promise.resolve(9));
+        chrome.tabs.get = vi.fn((tabId) =>
+            Promise.resolve({
+                id: tabId,
+                title: tabId === 99 ? 'Worker' : 'Inside',
+                url: `https://${tabId}.test/`,
+                active: false,
+                windowId: tabId === 99 ? 55 : 1,
+            })
+        );
+        const manager = new BrowserControlManager();
+        manager.dispatcher.dispatch = vi.fn(() =>
+            Promise.resolve({
+                output: 'Created worker',
+                _meta: { switchTabId: 99, allowOutsideControlledGroup: true },
+            })
+        );
+        manager.connection.attached = true;
+        manager.connection.currentTabId = 42;
+        manager.lockedTabId = 42;
+        manager.controlGroupId = 9;
+        manager.controlGroupWindowId = 1;
+
+        const result = await manager.execute({ name: 'new_page', args: { background: true } });
+        await Promise.resolve();
+
+        expect(result).toBe('Created worker');
+        expect(manager.lockedTabId).toBe(99);
+        expect(manager.getControlledGroupId()).toBe(null);
+        expect(manager.getControlledWindowId()).toBe(55);
+        expect(chrome.tabs.group).not.toHaveBeenCalled();
+    });
+
     it('reattaches before taking a snapshot when the locked tab changed', async () => {
         const manager = new BrowserControlManager();
         const attach = vi.spyOn(manager.connection, 'attach').mockImplementation(async (tabId) => {

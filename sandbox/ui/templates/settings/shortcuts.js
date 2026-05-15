@@ -4,8 +4,10 @@ export const ShortcutsSettingsTemplate = `
 
     <div class="setting-panel">
         <div class="setting-panel-header">
-            <h5 data-i18n="keyboardShortcuts">Keyboard Shortcuts</h5>
-            <span class="setting-desc" data-i18n="shortcutDesc">Click input and press keys to change.</span>
+            <h5>
+                <span data-i18n="keyboardShortcuts">Keyboard Shortcuts</span>
+                <button type="button" class="setting-help" aria-label="Help" data-i18n-title="shortcutDesc" title="Click input and press keys to change.">?</button>
+            </h5>
         </div>
 
         <div class="setting-shortcut-list">

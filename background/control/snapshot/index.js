@@ -1,5 +1,5 @@
-// background/control/snapshot.js
-import { SnapshotFormatter } from './snapshot/formatter.js';
+// background/control/snapshot/index.js
+import { SnapshotFormatter } from './formatter.js';
 
 /**
  * Handles Accessibility Tree generation and UID mapping.
@@ -10,6 +10,9 @@ export class SnapshotManager {
         this.connection = connection;
         this.snapshotMap = new Map(); // Maps uid -> backendNodeId
         this.uidToAxNode = new Map(); // Maps uid -> AXNode (raw)
+        this.uidToNodeId = new Map(); // Maps uid -> AX nodeId
+        this.nodeIdToUid = new Map(); // Maps AX nodeId -> uid
+        this.axNodeByNodeId = new Map(); // Maps AX nodeId -> AXNode (raw)
         this.snapshotIdCount = 0;
 
         // Listen to connection detach to clear state
@@ -19,6 +22,9 @@ export class SnapshotManager {
     clear() {
         this.snapshotMap.clear();
         this.uidToAxNode.clear();
+        this.uidToNodeId.clear();
+        this.nodeIdToUid.clear();
+        this.axNodeByNodeId.clear();
     }
 
     getBackendNodeId(uid) {
@@ -57,21 +63,28 @@ export class SnapshotManager {
      * Traverses descendants of a node using the raw AX tree structure.
      */
     findDescendant(rootUid, predicate) {
-        // Implementation relies on internal map not exposed in this simplified version
-        // Ideally we map uid -> nodeId (CDP ID) for traversal.
-        // For now, this is used by Select element handling.
-        // Simplified fallback: Iterate all known nodes in current map
+        const rootNodeId = this.uidToNodeId.get(rootUid);
+        if (!rootNodeId) return null;
 
-        for (const [uid, node] of this.uidToAxNode.entries()) {
-            // Crude check: is the uid lexically "larger" and shares prefix?
-            // Better approach: SnapshotFormatter provides structure.
-            // Since we cleared reLocate, we assume direct mapping logic is handled in takeSnapshot.
+        const visit = (nodeId) => {
+            const node = this.axNodeByNodeId.get(nodeId);
+            if (!node || !Array.isArray(node.childIds)) return null;
 
-            if (uid !== rootUid && predicate(node, uid)) {
-                return uid;
+            for (const childId of node.childIds) {
+                const childNode = this.axNodeByNodeId.get(childId);
+                const childUid = this.nodeIdToUid.get(childId);
+                if (childNode && childUid && predicate(childNode, childUid)) {
+                    return childUid;
+                }
+
+                const descendantUid = visit(childId);
+                if (descendantUid) return descendantUid;
             }
-        }
-        return null;
+
+            return null;
+        };
+
+        return visit(rootNodeId);
     }
 
     async takeSnapshot(args = {}) {
@@ -87,6 +100,9 @@ export class SnapshotManager {
 
         // Clear maps
         this.clear();
+        nodes.forEach((node) => {
+            if (node.nodeId) this.axNodeByNodeId.set(node.nodeId, node);
+        });
 
         const formatter = new SnapshotFormatter({
             verbose: args.verbose === true,
@@ -96,6 +112,10 @@ export class SnapshotManager {
                     this.snapshotMap.set(uid, node.backendDOMNodeId);
                 }
                 this.uidToAxNode.set(uid, node);
+                if (node.nodeId) {
+                    this.uidToNodeId.set(uid, node.nodeId);
+                    this.nodeIdToUid.set(node.nodeId, uid);
+                }
             },
         });
 

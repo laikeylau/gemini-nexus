@@ -6,7 +6,10 @@ import {
     DEFAULT_CONTEXT_MODE,
     DEFAULT_CONTEXT_RECENT_TURNS,
 } from '../../../shared/config/constants.js';
-import { countUserAttachmentsByType, getAttachmentDataUrls } from '../../../shared/attachments.js';
+import {
+    countUserAttachmentsByType,
+    getAttachmentDataUrls,
+} from '../../../shared/attachments/index.js';
 import { getHistory } from './history_store.js';
 import { prepareManagedContext } from './context_manager.js';
 

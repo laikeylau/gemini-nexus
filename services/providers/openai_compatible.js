@@ -3,7 +3,7 @@ import {
     countUserAttachmentsByType,
     getImageAttachmentDataUrls,
     normalizeUserAttachments,
-} from '../../shared/attachments.js';
+} from '../../shared/attachments/index.js';
 import { readSseJson } from './sse.js';
 
 function normalizeBaseUrl(baseUrl) {

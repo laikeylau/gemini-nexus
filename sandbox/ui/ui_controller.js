@@ -1,7 +1,7 @@
 // sandbox/ui/ui_controller.js
 import { ChatController } from './chat.js';
 import { SidebarController } from './sidebar.js';
-import { SettingsController } from './settings.js';
+import { SettingsController } from './settings/index.js';
 import { ViewerController } from './viewer.js';
 import { TabSelectorController } from './tab_selector.js';
 import { createModelOptions, getPreferredModel } from './model_options.js';

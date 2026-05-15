@@ -1,10 +1,8 @@
-// background/control/actions.js
-import { NavigationActions } from './actions/navigation.js';
-import { InputActions } from './actions/input.js';
-import { ObservationActions } from './actions/observation.js';
-import { EmulationActions } from './actions/emulation.js';
-import { PerformanceActions } from './actions/performance.js';
-import { WaitForHelper } from './wait_helper.js';
+// background/control/actions/index.js
+import { NavigationActions } from './navigation.js';
+import { InputActions } from './input/index.js';
+import { ObservationActions } from './observation/index.js';
+import { WaitForHelper } from '../wait_helper.js';
 
 /**
  * Facade class that aggregates specific action modules.
@@ -22,8 +20,6 @@ export class BrowserActions {
         );
         this.input = new InputActions(connection, snapshotManager, this.waitHelper);
         this.observation = new ObservationActions(connection, snapshotManager, this.waitHelper);
-        this.emulation = new EmulationActions(connection, snapshotManager, this.waitHelper);
-        this.performance = new PerformanceActions(connection, snapshotManager, this.waitHelper);
     }
 
     // --- Navigation Delegates ---
@@ -47,17 +43,8 @@ export class BrowserActions {
     async clickElement(args) {
         return this.input.clickElement(args);
     }
-    async dragElement(args) {
-        return this.input.dragElement(args);
-    }
-    async hoverElement(args) {
-        return this.input.hoverElement(args);
-    }
     async fillElement(args) {
         return this.input.fillElement(args);
-    }
-    async fillForm(args) {
-        return this.input.fillForm(args);
     }
     async pressKey(args) {
         return this.input.pressKey(args);
@@ -67,32 +54,7 @@ export class BrowserActions {
     }
 
     // --- Observation Delegates ---
-    async takeScreenshot(args) {
-        return this.observation.takeScreenshot(args);
-    }
     async evaluateScript(args) {
         return this.observation.evaluateScript(args);
-    }
-    async waitFor(args) {
-        return this.observation.waitFor(args);
-    }
-
-    // --- Emulation Delegates ---
-    async emulate(args) {
-        return this.emulation.emulate(args);
-    }
-    async resizePage(args) {
-        return this.emulation.resizePage(args);
-    }
-
-    // --- Performance Delegates ---
-    async startTrace(args) {
-        return this.performance.startTrace(args);
-    }
-    async stopTrace(args) {
-        return this.performance.stopTrace(args);
-    }
-    async analyzeInsight(args) {
-        return this.performance.analyzeInsight(args);
     }
 }

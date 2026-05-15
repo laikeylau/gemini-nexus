@@ -13,7 +13,8 @@ export class NavigationActions extends BaseActionHandler {
     }
 
     getScopedTabQuery() {
-        const query = { currentWindow: true };
+        const windowId = this.getControlledWindowId();
+        const query = windowId === null ? { currentWindow: true } : { windowId };
         const groupId = this.getControlledGroupId();
         if (groupId !== null) query.groupId = groupId;
         return query;
@@ -29,9 +30,14 @@ export class NavigationActions extends BaseActionHandler {
         await chrome.tabs.group({ groupId, tabIds: [tabId] });
     }
 
+    getControlledWindowId() {
+        const windowId = this.groupContext.getControlledWindowId?.();
+        return Number.isInteger(windowId) && windowId > 0 ? windowId : null;
+    }
+
     async navigatePage({ url, type }) {
         // Use currentTabId (attached) or fallback to targetTabId (intent)
-        const tabId = this.connection.currentTabId || this.connection.targetTabId;
+        const tabId = this.connection.targetTabId || this.connection.currentTabId;
         if (!tabId) return 'Error: No target tab identified.';
 
         let action = '';
@@ -70,7 +76,10 @@ export class NavigationActions extends BaseActionHandler {
             });
             tab = win.tabs[0];
         } else {
-            tab = await chrome.tabs.create({ url: targetUrl });
+            const createOptions = { url: targetUrl };
+            const windowId = this.getControlledWindowId();
+            if (windowId !== null) createOptions.windowId = windowId;
+            tab = await chrome.tabs.create(createOptions);
             await this.addTabToControlledGroup(tab.id);
         }
 

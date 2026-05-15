@@ -12,7 +12,7 @@ describe('package-extension', () => {
         expect(
             shouldExcludeFromPackage('background/managers/session/context_manager.test.js')
         ).toBe(true);
-        expect(shouldExcludeFromPackage('shared/tool_call_text.test.js')).toBe(true);
+        expect(shouldExcludeFromPackage('shared/text/tool_call_text.test.js')).toBe(true);
     });
 
     it('keeps runtime source files in the package', () => {

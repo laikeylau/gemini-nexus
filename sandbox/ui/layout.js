@@ -7,7 +7,7 @@ import {
     ViewerTemplate,
     SettingsTemplate,
     TabSelectorTemplate,
-} from './templates.js';
+} from './templates/index.js';
 
 export function renderLayout() {
     const LayoutTemplate =

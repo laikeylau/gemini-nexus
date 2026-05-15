@@ -58,15 +58,6 @@ class NetworkCollector {
         }
     }
 
-    getFormatted() {
-        const output = [];
-        const recent = Array.from(this.requests.values()).slice(-20);
-        for (const req of recent) {
-            output.push(`[${req.method}] ${req.url} (${req.status})`);
-        }
-        return output.join('\n');
-    }
-
     getList(resourceTypes, limit = 50) {
         let items = Array.from(this.requests.values());
         if (resourceTypes && Array.isArray(resourceTypes) && resourceTypes.length > 0) {

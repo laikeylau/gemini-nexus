@@ -2,8 +2,8 @@ export const ConnectionSettingsTemplate = `
 <div class="setting-group">
     <h4 data-i18n="connection">Connection</h4>
 
-    <div style="margin-bottom: 12px;">
-        <label data-i18n="connectionProvider" style="font-weight: 500; display: block; margin-bottom: 6px;">Model Provider</label>
+    <div class="setting-compact-block">
+        <label class="setting-label" data-i18n="connectionProvider">Model Provider</label>
         <select id="provider-select" class="shortcut-input" style="width: 100%; text-align: left; padding: 8px 12px;">
             <option value="web" data-i18n="providerWeb">Gemini Web Client (Free)</option>
             <option value="official" data-i18n="providerOfficial">Google Gemini API</option>
@@ -77,11 +77,13 @@ export const ConnectionSettingsTemplate = `
         </div>
     </div>
 
-    <div style="margin-top: 12px; padding: 12px; background: var(--bg-setting-panel); border-radius: 8px;">
+    <div class="setting-panel">
         <div class="mcp-summary-row" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
             <div>
-                <label data-i18n="mcpTools" style="font-weight: 500; display: block; margin-bottom: 2px;">External MCP Tools</label>
-                <div data-i18n="mcpToolsDesc" style="font-size: 12px; opacity: 0.85;">Connect to a local/remote MCP server and use its tools in chat.</div>
+                <div class="setting-label">
+                    <span data-i18n="mcpTools">External MCP Tools</span>
+                    <button type="button" class="setting-help" aria-label="Help" data-i18n-title="mcpToolsDesc" title="Connect to a local/remote MCP server and use its tools in chat.">?</button>
+                </div>
             </div>
             <label class="setting-inline-toggle" style="display: flex; align-items: center; gap: 8px;">
                 <input type="checkbox" id="mcp-enabled" />
@@ -118,7 +120,7 @@ export const ConnectionSettingsTemplate = `
             <div>
                 <label data-i18n="mcpHeaders" style="font-weight: 500; display: block; margin-bottom: 2px;">Request Headers (JSON)</label>
                 <textarea id="mcp-headers" class="shortcut-input" style="width: 100%; min-height: 74px; resize: vertical; text-align: left; box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; line-height: 1.4;" data-i18n-placeholder="mcpHeadersPlaceholder" placeholder='{"Authorization":"Bearer xxx"}'></textarea>
-                <div data-i18n="mcpHeadersDesc" style="font-size: 11px; opacity: 0.75; margin-top: 4px;">Optional JSON object. Applied to SSE and Streamable HTTP requests.</div>
+                <button type="button" class="setting-help setting-help-after-field" aria-label="Help" data-i18n-title="mcpHeadersDesc" title="Optional JSON object. Applied to SSE and Streamable HTTP requests.">?</button>
             </div>
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
                 <label class="setting-inline-toggle" style="display: flex; align-items: center; gap: 8px;">

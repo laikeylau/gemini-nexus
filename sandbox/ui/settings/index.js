@@ -1,4 +1,4 @@
-// sandbox/ui/settings.js
+// sandbox/ui/settings/index.js
 import {
     saveShortcutsToStorage,
     saveThemeToStorage,
@@ -16,9 +16,9 @@ import {
     saveConnectionSettingsToStorage,
     requestConnectionSettingsFromStorage,
     sendToBackground,
-} from '../../shared/messaging/index.js';
-import { formatT, setLanguagePreference, getLanguagePreference, t } from '../core/i18n.js';
-import { SettingsView } from './settings/view.js';
+} from '../../../shared/messaging/index.js';
+import { formatT, setLanguagePreference, getLanguagePreference, t } from '../../core/i18n.js';
+import { SettingsView } from './view.js';
 import {
     DEFAULT_CONTEXT_MODE,
     DEFAULT_CONTEXT_RECENT_TURNS,
@@ -30,9 +30,9 @@ import {
     DEFAULT_SHORTCUTS,
     DEFAULT_SIDE_PANEL_SCOPE,
     DEFAULT_THINKING_LEVEL,
-} from '../../shared/config/constants.js';
-import { createDefaultMcpServer } from '../../shared/settings/connection.js';
-import { normalizeOpenAIWebSearchSettings } from '../../shared/settings/openai.js';
+} from '../../../shared/config/constants.js';
+import { createDefaultMcpServer } from '../../../shared/settings/connection.js';
+import { normalizeOpenAIWebSearchSettings } from '../../../shared/settings/openai.js';
 
 export class SettingsController {
     constructor(callbacks) {

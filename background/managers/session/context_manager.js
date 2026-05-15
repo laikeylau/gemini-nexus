@@ -5,7 +5,7 @@ import {
     DEFAULT_CONTEXT_MODE,
     DEFAULT_CONTEXT_RECENT_TURNS,
 } from '../../../shared/config/constants.js';
-import { countUserAttachmentsByType } from '../../../shared/attachments.js';
+import { countUserAttachmentsByType } from '../../../shared/attachments/index.js';
 import { getSessionContextSummary, updateSessionContextSummary } from '../history_manager.js';
 
 const MIN_RECENT_TURNS = 1;

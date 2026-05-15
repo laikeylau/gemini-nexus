@@ -79,34 +79,4 @@ export class ScriptActions extends BaseActionHandler {
         }
     }
 
-    async waitFor({ text, timeout = 5000 }) {
-        try {
-            // Poll for text presence in the DOM
-            const res = await this.cmd('Runtime.evaluate', {
-                expression: `
-                    (async () => {
-                        const start = Date.now();
-                        const target = "${String(text).replace(/"/g, '\\"')}";
-                        while (Date.now() - start < ${timeout}) {
-                            if (document.body && document.body.innerText.includes(target)) {
-                                return true;
-                            }
-                            await new Promise(r => setTimeout(r, 200));
-                        }
-                        return false;
-                    })()
-                `,
-                awaitPromise: true,
-                returnByValue: true,
-            });
-
-            if (res.result && res.result.value === true) {
-                return `Found text "${text}".`;
-            } else {
-                return `Timeout waiting for text "${text}" after ${timeout}ms.`;
-            }
-        } catch (e) {
-            return `Error waiting for text: ${e.message}`;
-        }
-    }
 }

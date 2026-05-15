@@ -1,8 +1,8 @@
-import { ConnectionSettingsTemplate } from './settings/connection.js';
-import { GeneralSettingsTemplate } from './settings/general.js';
-import { AppearanceSettingsTemplate } from './settings/appearance.js';
-import { ShortcutsSettingsTemplate } from './settings/shortcuts.js';
-import { AboutSettingsTemplate } from './settings/about.js';
+import { ConnectionSettingsTemplate } from './connection.js';
+import { GeneralSettingsTemplate } from './general.js';
+import { AppearanceSettingsTemplate } from './appearance.js';
+import { ShortcutsSettingsTemplate } from './shortcuts.js';
+import { AboutSettingsTemplate } from './about.js';
 
 export const SettingsTemplate = `
     <!-- SETTINGS -->

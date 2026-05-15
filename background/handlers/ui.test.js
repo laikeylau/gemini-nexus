@@ -122,4 +122,45 @@ describe('UIMessageHandler browser control tab ownership', () => {
         );
         expect(chrome.tabs.query).toHaveBeenCalledWith({ currentWindow: true, groupId: 7 });
     });
+
+    it('returns tabs from the controlled popup window when the control scope has no group', async () => {
+        globalThis.chrome = {
+            runtime: {
+                sendMessage: vi.fn(() => Promise.resolve()),
+            },
+            tabs: {
+                query: vi.fn(({ windowId }) => {
+                    if (windowId === 55) {
+                        return Promise.resolve([
+                            { id: 9, title: 'Worker', url: 'https://worker.test/', windowId: 55 },
+                        ]);
+                    }
+                    return Promise.resolve([
+                        { id: 1, title: 'Main', url: 'https://main.test/', windowId: 1 },
+                    ]);
+                }),
+            },
+        };
+        controlManager.getControlledGroupId = vi.fn(() => null);
+        controlManager.getControlledWindowId = vi.fn(() => 55);
+        controlManager.getTargetTabId = vi.fn(() => 9);
+        const sendResponse = vi.fn();
+
+        const handled = handler.handle(
+            { action: 'GET_OPEN_TABS', sidePanelTabId: 123 },
+            {},
+            sendResponse
+        );
+
+        expect(handled).toBe(true);
+        await vi.waitFor(() =>
+            expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    action: 'OPEN_TABS_RESULT',
+                    tabs: [expect.objectContaining({ id: 9, title: 'Worker' })],
+                })
+            )
+        );
+        expect(chrome.tabs.query).toHaveBeenCalledWith({ windowId: 55 });
+    });
 });

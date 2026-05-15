@@ -53,6 +53,30 @@ describe('NavigationActions controlled tab group scope', () => {
         expect(output).not.toContain('Outside');
     });
 
+    it('lists tabs from the controlled popup window when no native group is active', async () => {
+        const actions = createActions({
+            getControlledGroupId: () => null,
+            getControlledWindowId: () => 55,
+        });
+
+        await actions.listPages();
+
+        expect(chrome.tabs.query).toHaveBeenCalledWith({ windowId: 55 });
+    });
+
+    it('navigates the intended target tab when debugger is still attached elsewhere', async () => {
+        const connection = { currentTabId: 101, targetTabId: 202 };
+        const waitHelper = {
+            execute: vi.fn(async (fn) => fn()),
+        };
+        const actions = new NavigationActions(connection, {}, waitHelper);
+        chrome.tabs.update = vi.fn(() => Promise.resolve());
+
+        await actions.navigatePage({ url: 'https://target.test/' });
+
+        expect(chrome.tabs.update).toHaveBeenCalledWith(202, { url: 'https://target.test/' });
+    });
+
     it('selects pages by index from the controlled group only', async () => {
         const actions = createActions({ getControlledGroupId: () => 7 });
 

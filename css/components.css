@@ -181,10 +181,10 @@
 
 .settings-content {
     background: var(--bg-modal);
-    width: 420px;
+    width: 400px;
     max-width: 90%;
-    max-height: 85vh; /* Limit height */
-    border-radius: 12px;
+    max-height: 88vh; /* Limit height */
+    border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     transform: translateY(10px);
     transition:
@@ -199,7 +199,7 @@
 }
 
 .settings-header {
-    padding: 16px 20px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
@@ -210,7 +210,7 @@
 
 .settings-header h3 {
     margin: 0;
-    font-size: 18px;
+    font-size: 16px;
     color: var(--text-primary);
     font-weight: 600;
 }
@@ -219,18 +219,18 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 6px;
     min-width: 0;
 }
 
 .settings-header-actions .btn-primary,
 .settings-header-actions .btn-secondary {
-    padding: 7px 12px;
+    padding: 6px 10px;
     white-space: nowrap;
 }
 
 .settings-body {
-    padding: 20px;
+    padding: 14px 16px 16px;
     overflow-y: auto; /* Enable vertical scrolling */
     overscroll-behavior: contain; /* Prevent scroll chaining to parent */
 
@@ -267,15 +267,15 @@
 }
 
 .setting-group {
-    margin-bottom: 24px;
+    margin-bottom: 16px;
 }
 .setting-group:last-child {
     margin-bottom: 0;
 }
 
 .setting-group h4 {
-    margin: 0 0 10px 0;
-    font-size: 14px;
+    margin: 0 0 8px 0;
+    font-size: 12px;
     color: var(--primary);
     text-transform: uppercase;
     font-weight: 600;
@@ -322,7 +322,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 .shortcut-row label {
     font-size: 14px;
@@ -331,7 +331,7 @@
 }
 .shortcut-input {
     width: 140px;
-    padding: 6px 10px;
+    padding: 5px 9px;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 13px;
@@ -350,9 +350,9 @@
 }
 
 .setting-panel {
-    margin-bottom: 12px;
-    padding: 14px;
-    border-radius: 8px;
+    margin-bottom: 8px;
+    padding: 10px;
+    border-radius: 6px;
     background: var(--bg-setting-panel);
 }
 
@@ -360,14 +360,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
 }
 
 .setting-panel-header {
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    margin-bottom: 12px;
+    gap: 2px;
+    margin-bottom: 8px;
     min-width: 0;
 }
 
@@ -383,15 +383,19 @@
 
 .setting-panel-header h5 {
     margin: 0;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
 }
 
 .setting-panel-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 112px;
-    gap: 10px;
+    gap: 8px;
     align-items: end;
 }
 
@@ -400,19 +404,39 @@
 }
 
 .setting-field {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px;
     min-width: 0;
 }
 
-.setting-field span {
+.setting-field > span,
+.setting-field > label,
+.setting-label {
     font-size: 13px;
     font-weight: 500;
     color: var(--text-secondary);
 }
 
+.setting-field-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.setting-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.setting-compact-block {
+    margin-bottom: 8px;
+}
+
 .setting-field .shortcut-input {
+    grid-column: 1 / -1;
     width: 100%;
     box-sizing: border-box;
     text-align: left;
@@ -437,7 +461,70 @@
 }
 
 .setting-panel-note {
-    margin-top: 10px;
+    margin-top: 6px;
+}
+
+.setting-help {
+    position: relative;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    background: var(--bg-input);
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: help;
+}
+
+.setting-help:hover,
+.setting-help:focus-visible {
+    color: var(--primary);
+    border-color: var(--primary);
+    background: var(--bg-input-focus);
+    outline: none;
+}
+
+.setting-help::after {
+    content: attr(title);
+    position: absolute;
+    z-index: 2200;
+    left: 50%;
+    bottom: calc(100% + 8px);
+    width: max-content;
+    max-width: min(260px, 70vw);
+    transform: translateX(-50%) translateY(4px);
+    padding: 7px 9px;
+    border-radius: 6px;
+    background: var(--text-primary);
+    color: var(--bg-body);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+    white-space: normal;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+        opacity 0.12s ease,
+        transform 0.12s ease;
+}
+
+.setting-help:hover::after,
+.setting-help:focus-visible::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.setting-help-after-field {
+    margin-top: 6px;
 }
 
 .mcp-summary-row > div:first-child {
@@ -456,23 +543,32 @@
 .setting-radio-list {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
 }
 
 .setting-radio-option {
     display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+}
+
+.setting-radio-choice {
+    display: inline-flex;
     align-items: flex-start;
     gap: 8px;
     min-width: 0;
     cursor: pointer;
 }
 
-.setting-radio-option input {
+.setting-radio-option input,
+.setting-radio-choice input {
     margin-top: 3px;
 }
 
 .setting-radio-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
 }
@@ -486,7 +582,7 @@
 .setting-shortcut-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .setting-shortcut-row {
@@ -495,7 +591,7 @@
 
 .setting-shortcut-title {
     min-width: 0;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
 }

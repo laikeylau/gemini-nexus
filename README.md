@@ -63,12 +63,10 @@ Gemini Nexus 当前围绕浏览器内 AI 工作流提供以下能力：
 
 | 分类         | 核心指令                                                                           | 代码实现逻辑                                      |
 | :----------- | :--------------------------------------------------------------------------------- | :------------------------------------------------ |
-| **导航控制** | `navigate_page`, `new_page`                                                        | 调用 `chrome.tabs` 进行页面生命周期管理           |
-| **页面交互** | `click`, `fill`, `fill_form`, `hover`, `drag_element`, `press_key`                 | 基于 **Accessibility Tree** 生成 UID 进行精准操控 |
-| **数据观测** | `take_snapshot`, `take_screenshot`, `get_logs`                                     | 提取页面无障碍树、截图、控制台日志及浏览器问题    |
-| **网络观测** | `get_network_activity`, `list_network_requests`, `get_network_request`             | 查看网络请求列表、状态、头信息及可用响应体        |
-| **脚本执行** | `evaluate_script`, `run_javascript`, `run_script`                                  | 在网页 Context 中运行自定义 JavaScript            |
-| **性能分析** | `performance_start_trace`, `performance_stop_trace`, `performance_analyze_insight` | 记录并分析页面性能指标                            |
+| **导航控制** | `navigate_page`, `new_page`, `close_page`, `list_pages`, `select_page`             | 调用 `chrome.tabs` 进行页面生命周期管理           |
+| **页面交互** | `click`, `fill`, `press_key`, `attach_file`, `handle_dialog`                       | 基于 **Accessibility Tree** 生成 UID 进行精准操控 |
+| **数据观测** | `take_snapshot`                                                                    | 提取页面无障碍树并生成可复用 UID                  |
+| **脚本执行** | `evaluate_script`                                                                  | 在网页 Context 中运行自定义 JavaScript            |
 
 浏览器控制启用后会锁定一个目标标签页，并用 Chrome 原生标签组展示当前任务标题。`select_page` 默认只在受控标签组内切换；`new_page` 的普通标签页会加入该组，`background: true` 则会打开独立 popup 窗口以减少焦点干扰。
 
@@ -126,7 +124,7 @@ Gemini Nexus 可以选择连接到一个或多个外部 MCP 服务器（通过 *
 
 ### 仓库结构
 
-本仓库根目录就是可运行的 Chrome 扩展项目根目录。`package.json`、`manifest.json`、Vite 配置、源码、测试和打包脚本都位于根目录。跨运行域共享的工具代码位于 `shared/`，并按能力分组到 `shared/config/`、`shared/dom/`、`shared/media/`、`shared/messaging/`、`shared/text/` 和 `shared/utils/`；顶层 `shared/*.js` 仅作为旧引用兼容入口。
+本仓库根目录就是可运行的 Chrome 扩展项目根目录。`package.json`、`manifest.json`、Vite 配置、源码、测试和打包脚本都位于根目录。跨运行域共享的工具代码位于 `shared/`，并按能力分组到 `shared/attachments/`、`shared/config/`、`shared/dom/`、`shared/mcp/`、`shared/media/`、`shared/messaging/`、`shared/models/`、`shared/settings/`、`shared/text/` 和 `shared/utils/`；不再保留顶层 `shared/*.js` 兼容入口。模块目录的聚合入口统一使用目录内 `index.js`，避免出现同级 `foo.js` 与 `foo/` 并存；运行域入口保留为各运行域根部的 `index.js`，例如 `background/index.js`、`content/index.js`、`sandbox/index.js` 和 `sidepanel/index.js`。运行时代码文件使用 `snake_case`，仓库工具脚本和工作流文件可使用 `kebab-case`。
 
 ### 安装步骤
 

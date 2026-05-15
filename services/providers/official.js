@@ -4,7 +4,10 @@ import {
     DEFAULT_OFFICIAL_MODEL,
     DEFAULT_THINKING_LEVEL,
 } from '../../shared/config/constants.js';
-import { attachmentToInlineData, normalizeUserAttachments } from '../../shared/attachments.js';
+import {
+    attachmentToInlineData,
+    normalizeUserAttachments,
+} from '../../shared/attachments/index.js';
 import { readSseJson } from './sse.js';
 
 function extractGroundingSources(groundingMetadata) {

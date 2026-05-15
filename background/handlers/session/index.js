@@ -1,7 +1,7 @@
-// background/handlers/session.js
-import { PromptHandler } from './session/prompt_handler.js';
-import { QuickAskHandler } from './session/quick_ask_handler.js';
-import { ContextHandler } from './session/context_handler.js';
+// background/handlers/session/index.js
+import { PromptHandler } from './prompt_handler.js';
+import { QuickAskHandler } from './quick_ask_handler.js';
+import { ContextHandler } from './context_handler.js';
 
 export class SessionMessageHandler {
     constructor(sessionManager, imageHandler, controlManager, mcpManager) {

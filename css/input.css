@@ -109,9 +109,9 @@ body.layout-wide .tools-container {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
     background: var(--bg-body);
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
@@ -132,22 +132,19 @@ body.layout-wide .tools-container {
     pointer-events: none;
 }
 
-.tools-container:hover .scroll-nav-btn {
+.tools-container:hover.has-overflow-left .scroll-nav-btn.left,
+.tools-container:hover.has-overflow-right .scroll-nav-btn.right,
+.tools-container:focus-within.has-overflow-left .scroll-nav-btn.left,
+.tools-container:focus-within.has-overflow-right .scroll-nav-btn.right {
     opacity: 1;
     transform: translateY(-50%) scale(1);
     pointer-events: auto;
 }
 
-.tools-container:hover .scroll-nav-btn:disabled {
+.tools-container:hover .scroll-nav-btn:disabled,
+.tools-container:focus-within .scroll-nav-btn:disabled {
     opacity: 0;
     pointer-events: none;
-}
-
-.tools-container.has-overflow-left .scroll-nav-btn.left,
-.tools-container.has-overflow-right .scroll-nav-btn.right {
-    opacity: 1;
-    transform: translateY(-50%) scale(1);
-    pointer-events: auto;
 }
 
 .scroll-nav-btn:hover {
@@ -159,7 +156,7 @@ body.layout-wide .tools-container {
 
 /* Ensure scaling works on hover with enough specificity */
 .tools-container .scroll-nav-btn:hover {
-    transform: translateY(-50%) scale(1.15);
+    transform: translateY(-50%) scale(1);
 }
 
 .scroll-nav-btn.left {

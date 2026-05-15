@@ -274,6 +274,11 @@ export class UIMessageHandler {
             (async () => {
                 const tabQuery = { currentWindow: true };
                 const groupId = this.controlManager?.getControlledGroupId?.();
+                const windowId = this.controlManager?.getControlledWindowId?.();
+                if (Number.isInteger(windowId) && windowId > 0) {
+                    delete tabQuery.currentWindow;
+                    tabQuery.windowId = windowId;
+                }
                 if (Number.isInteger(groupId) && groupId >= 0) {
                     tabQuery.groupId = groupId;
                 }

@@ -1,6 +1,9 @@
 // sandbox/core/session_manager.js
 import { generateUUID } from '../../shared/utils/index.js';
-import { getImageAttachmentDataUrls, normalizeUserAttachments } from '../../shared/attachments.js';
+import {
+    getImageAttachmentDataUrls,
+    normalizeUserAttachments,
+} from '../../shared/attachments/index.js';
 
 export class SessionManager {
     constructor() {

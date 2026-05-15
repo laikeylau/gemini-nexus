@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { bindAppEvents } from './events.js';
+import { bindAppEvents, getToolsPageScrollDistance } from './events.js';
 
 vi.mock('../../shared/messaging/index.js', () => ({
     sendToBackground: vi.fn(),
@@ -68,5 +68,42 @@ describe('app events', () => {
             '*'
         );
         expect(ui.updateStatus).toHaveBeenCalledWith('Choose a screen or window to capture...');
+    });
+
+    it('uses a page-sized distance for tools row navigation', () => {
+        expect(getToolsPageScrollDistance({ clientWidth: 320 })).toBe(296);
+        expect(getToolsPageScrollDistance({ clientWidth: 120 })).toBe(160);
+    });
+
+    it('scrolls the tools row by one visible page when using navigation buttons', () => {
+        const toolsRow = document.getElementById('tools-row');
+        Object.defineProperty(toolsRow, 'clientWidth', {
+            value: 320,
+            configurable: true,
+        });
+        Object.defineProperty(toolsRow, 'scrollWidth', {
+            value: 720,
+            configurable: true,
+        });
+
+        const app = {
+            handleNewChat: vi.fn(),
+            handleTabSwitcher: vi.fn(),
+            toggleBrowserControl: vi.fn(),
+            setCaptureMode: vi.fn(),
+            togglePageContext: vi.fn(),
+            handleModelChange: vi.fn(),
+            handleSendMessage: vi.fn(),
+            isGenerating: false,
+        };
+        const ui = {
+            inputFn: document.getElementById('prompt'),
+            updateStatus: vi.fn(),
+        };
+
+        bindAppEvents(app, ui);
+        document.getElementById('tools-scroll-right').click();
+
+        expect(toolsRow.scrollBy).toHaveBeenCalledWith({ left: 296, behavior: 'smooth' });
     });
 });

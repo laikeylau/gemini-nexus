@@ -1,7 +1,7 @@
 // background/managers/control_manager.js
 import { BrowserConnection } from '../control/connection.js';
-import { SnapshotManager } from '../control/snapshot.js';
-import { BrowserActions } from '../control/actions.js';
+import { SnapshotManager } from '../control/snapshot/index.js';
+import { BrowserActions } from '../control/actions/index.js';
 import { ToolDispatcher } from '../control/dispatcher.js';
 import { getTabControlAvailability, toControlTabSummary } from '../control/tabs.js';
 
@@ -15,12 +15,15 @@ export class BrowserControlManager {
         this.snapshotManager = new SnapshotManager(this.connection);
         this.actions = new BrowserActions(this.connection, this.snapshotManager, {
             getControlledGroupId: () => this.getControlledGroupId(),
+            getControlledWindowId: () => this.getControlledWindowId(),
         });
         this.dispatcher = new ToolDispatcher(this.actions, this.snapshotManager);
         this.lockedTabId = null;
         this.ownerSidePanelTabId = null;
         this.controlGroupTabId = null;
         this.controlGroupId = null;
+        this.controlWindowId = null;
+        this.nativeGroupDisabledForTabId = null;
         this.controlTaskTitle = 'Browser control';
 
         this.connection.onDetach(() => {
@@ -45,8 +48,9 @@ export class BrowserControlManager {
         });
     }
 
-    setTargetTab(tabId) {
+    setTargetTab(tabId, options = {}) {
         this.lockedTabId = tabId;
+        this.connection.targetTabId = Number.isInteger(tabId) && tabId > 0 ? tabId : null;
         console.log(`[ControlManager] Target tab locked to: ${tabId}`);
 
         if (tabId) {
@@ -54,16 +58,26 @@ export class BrowserControlManager {
             chrome.tabs
                 .get(tabId)
                 .then((tab) => {
-                    this._applyNativeTabGroup(tab);
+                    if (options.skipNativeGroup === true) {
+                        this.nativeGroupDisabledForTabId = tab.id;
+                    } else if (this.nativeGroupDisabledForTabId === tab.id) {
+                        this.nativeGroupDisabledForTabId = null;
+                    }
+                    this._applyNativeTabGroup(tab, {
+                        skipNativeGroup: options.skipNativeGroup === true,
+                    });
                     this._broadcastLockState(tab);
                 })
                 .catch(() => {
                     // Tab might have closed or invalid ID
                     this.lockedTabId = null;
+                    this.connection.targetTabId = null;
                     this._broadcastLockState(null);
                 });
         } else {
             this._clearNativeTabGroup();
+            this.controlWindowId = null;
+            this.nativeGroupDisabledForTabId = null;
             this._broadcastLockState(null);
         }
     }
@@ -103,18 +117,47 @@ export class BrowserControlManager {
         chrome.tabs
             .get(this.lockedTabId)
             .then((tab) => {
-                this._applyNativeTabGroup(tab);
+                this._applyNativeTabGroup(tab, {
+                    skipNativeGroup: this.nativeGroupDisabledForTabId === tab.id,
+                });
                 this._broadcastLockState(tab);
             })
             .catch(() => this._broadcastLockState(null));
     }
 
-    async _applyNativeTabGroup(tab) {
-        if (!tab?.id || !chrome.tabs?.group || !chrome.tabGroups?.update) return;
+    _rememberControlledWindow(tab) {
+        if (Number.isInteger(tab?.windowId) && tab.windowId > 0) {
+            this.controlWindowId = tab.windowId;
+        }
+    }
+
+    async _applyNativeTabGroup(tab, { skipNativeGroup = false } = {}) {
+        const previousWindowId = this.getControlledWindowId();
+        this._rememberControlledWindow(tab);
+
+        if (skipNativeGroup) {
+            await this._clearNativeTabGroup();
+            return;
+        }
+
+        if (!tab?.id || !chrome.tabs?.group || !chrome.tabGroups?.update) {
+            this.controlGroupId = null;
+            this.controlGroupTabId = null;
+            return;
+        }
 
         this.controlGroupTabId = tab.id;
         try {
-            const existingGroupId = this.getControlledGroupId();
+            let existingGroupId = this.getControlledGroupId();
+            if (
+                existingGroupId !== null &&
+                Number.isInteger(previousWindowId) &&
+                Number.isInteger(tab.windowId) &&
+                previousWindowId !== tab.windowId
+            ) {
+                await this._clearNativeTabGroup();
+                existingGroupId = null;
+            }
             const groupRequest =
                 existingGroupId === null
                     ? { tabIds: [tab.id] }
@@ -136,17 +179,26 @@ export class BrowserControlManager {
     }
 
     async _clearNativeTabGroup(tabId = this.controlGroupTabId) {
-        if (!tabId || !chrome.tabs?.ungroup) return;
+        const groupId = this.getControlledGroupId();
+        if ((!tabId && groupId === null) || !chrome.tabs?.ungroup) {
+            this.controlGroupTabId = null;
+            this.controlGroupId = null;
+            return;
+        }
 
         try {
-            let tabIds = [tabId];
-            const groupId = this.getControlledGroupId();
+            let tabIds = tabId ? [tabId] : [];
             if (groupId !== null && chrome.tabs?.query) {
-                const tabs = await chrome.tabs.query({ currentWindow: true, groupId });
+                const query = { groupId };
+                const windowId = this.getControlledWindowId();
+                if (windowId !== null) query.windowId = windowId;
+                const tabs = await chrome.tabs.query(query);
                 tabIds = tabs.map((tab) => tab.id).filter((id) => Number.isInteger(id) && id > 0);
-                if (tabIds.length === 0) tabIds = [tabId];
+                if (tabIds.length === 0 && tabId) tabIds = [tabId];
             }
-            await chrome.tabs.ungroup(tabIds.length === 1 ? tabIds[0] : tabIds);
+            if (tabIds.length > 0) {
+                await chrome.tabs.ungroup(tabIds.length === 1 ? tabIds[0] : tabIds);
+            }
         } catch (error) {
             console.debug('[ControlManager] Could not clear tab group indicator:', error);
         } finally {
@@ -161,14 +213,29 @@ export class BrowserControlManager {
             : null;
     }
 
+    getControlledWindowId() {
+        return Number.isInteger(this.controlWindowId) && this.controlWindowId > 0
+            ? this.controlWindowId
+            : null;
+    }
+
     async isTabInControlledGroup(tabId) {
         const groupId = this.getControlledGroupId();
-        if (groupId === null) return true;
         if (!Number.isInteger(tabId) || tabId <= 0) return false;
 
         try {
-            const tabs = await chrome.tabs.query({ currentWindow: true, groupId });
-            return tabs.some((tab) => tab.id === tabId);
+            if (groupId !== null) {
+                const query = { groupId };
+                const windowId = this.getControlledWindowId();
+                if (windowId !== null) query.windowId = windowId;
+                const tabs = await chrome.tabs.query(query);
+                return tabs.some((tab) => tab.id === tabId);
+            }
+
+            const windowId = this.getControlledWindowId();
+            if (windowId === null) return true;
+            const tab = await chrome.tabs.get(tabId);
+            return tab.windowId === windowId;
         } catch {
             return false;
         }
@@ -262,6 +329,30 @@ export class BrowserControlManager {
         return true;
     }
 
+    async ensureTargetReference() {
+        let tabId = this.lockedTabId;
+
+        if (tabId) {
+            try {
+                const tab = await chrome.tabs.get(tabId);
+                this.connection.targetTabId = tabId;
+                this._rememberControlledWindow(tab);
+                return true;
+            } catch (e) {
+                console.warn('[ControlManager] Locked tab not found, clearing lock.', e);
+                this.lockedTabId = null;
+                this.connection.targetTabId = null;
+                tabId = null;
+            }
+        }
+
+        const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+        if (!tab?.id) return false;
+        this.setTargetTab(tab.id);
+        this._rememberControlledWindow(tab);
+        return true;
+    }
+
     async getSnapshot() {
         if (!this.connection.attached || this.connection.currentTabId !== this.lockedTabId) {
             const success = await this.ensureConnection();
@@ -276,10 +367,13 @@ export class BrowserControlManager {
     async execute(toolCall) {
         try {
             const { name, args } = toolCall;
-            const success = await this.ensureConnection();
+            const requiresDebugger = ToolDispatcher.requiresDebugger(name);
+            const success = requiresDebugger
+                ? await this.ensureConnection()
+                : await this.ensureTargetReference();
 
             // Check attached status as well to be safe
-            if (!success || !this.connection.attached) {
+            if (requiresDebugger && (!success || !this.connection.attached)) {
                 return 'Error: No active tab found, restricted URL, or debugger disconnected.';
             }
 
@@ -301,7 +395,9 @@ export class BrowserControlManager {
                     ) {
                         return 'Error: Target tab is outside the controlled tab group.';
                     }
-                    this.setTargetTab(nextTabId);
+                    this.setTargetTab(nextTabId, {
+                        skipNativeGroup: result._meta.allowOutsideControlledGroup === true,
+                    });
                 }
 
                 // 2. Unwrap Output

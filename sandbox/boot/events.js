@@ -2,6 +2,10 @@
 import { sendToBackground } from '../../shared/messaging/index.js';
 import { t } from '../core/i18n.js';
 
+export function getToolsPageScrollDistance(toolsRow) {
+    return Math.max(160, toolsRow.clientWidth - 24);
+}
+
 export function bindAppEvents(app, ui, setResizeRef) {
     // New Chat Buttons
     document
@@ -40,10 +44,10 @@ export function bindAppEvents(app, ui, setResizeRef) {
         };
 
         scrollLeftBtn.addEventListener('click', () => {
-            toolsRow.scrollBy({ left: -150, behavior: 'smooth' });
+            toolsRow.scrollBy({ left: -getToolsPageScrollDistance(toolsRow), behavior: 'smooth' });
         });
         scrollRightBtn.addEventListener('click', () => {
-            toolsRow.scrollBy({ left: 150, behavior: 'smooth' });
+            toolsRow.scrollBy({ left: getToolsPageScrollDistance(toolsRow), behavior: 'smooth' });
         });
         toolsRow.addEventListener('scroll', updateToolsScrollState, { passive: true });
         window.addEventListener('resize', updateToolsScrollState);

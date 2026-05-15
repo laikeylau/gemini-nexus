@@ -1,5 +1,5 @@
 import { createGeneratedImage } from './generated_image.js';
-import { normalizeUserAttachments } from '../../shared/attachments.js';
+import { normalizeUserAttachments } from '../../shared/attachments/index.js';
 
 export function createUserImagesGrid(attachment) {
     const userAttachments = normalizeUserAttachments(attachment);

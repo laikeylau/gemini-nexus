@@ -1,6 +1,9 @@
 // background/managers/history_manager.js
 import { generateUUID } from '../../shared/utils/index.js';
-import { getImageAttachmentDataUrls, normalizeUserAttachments } from '../../shared/attachments.js';
+import {
+    getImageAttachmentDataUrls,
+    normalizeUserAttachments,
+} from '../../shared/attachments/index.js';
 
 async function saveSessionsAndNotify(geminiSessions) {
     await chrome.storage.local.set({ geminiSessions });
