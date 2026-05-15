@@ -11,7 +11,7 @@ export const ConnectionSettingsTemplate = `
         </select>
     </div>
 
-    <div id="api-key-container" style="display: none; flex-direction: column; gap: 12px; margin-bottom: 12px; padding: 12px; background: rgba(0,0,0,0.03); border-radius: 8px;">
+    <div id="api-key-container" style="display: none; flex-direction: column; gap: 12px; margin-bottom: 12px; padding: 12px; background: var(--bg-setting-panel); border-radius: 8px;">
         <!-- Official API Fields -->
         <div id="official-fields" style="display: none; flex-direction: column; gap: 12px;">
             <div>
@@ -24,15 +24,15 @@ export const ConnectionSettingsTemplate = `
             </div>
             <div>
                 <label data-i18n="modelIds" style="font-weight: 500; display: block; margin-bottom: 2px;">Model IDs</label>
-                <input type="text" id="official-model" class="shortcut-input" style="width: 100%; text-align: left; box-sizing: border-box;" data-i18n-placeholder="officialModelPlaceholder" placeholder="gemini-3-flash-preview, gemini-3-pro-preview">
+                <input type="text" id="official-model" class="shortcut-input" style="width: 100%; text-align: left; box-sizing: border-box;" data-i18n-placeholder="officialModelPlaceholder" placeholder="gemini-3-flash-preview, gemini-3.1-pro-preview">
             </div>
             <div>
-                <label style="font-weight: 500; display: block; margin-bottom: 2px;">Thinking Level (Gemini 3)</label>
+                <label data-i18n="thinkingLevelGemini3" style="font-weight: 500; display: block; margin-bottom: 2px;">Thinking Level (Gemini 3)</label>
                 <select id="thinking-level-select" class="shortcut-input" style="width: 100%; text-align: left; padding: 6px 12px;">
-                    <option value="minimal">Minimal (Flash Only)</option>
-                    <option value="low">Low (Faster)</option>
-                    <option value="medium">Medium (Balanced)</option>
-                    <option value="high">High (Deep Reasoning)</option>
+                    <option value="minimal" data-i18n="thinkingMinimalFlashOnly">Minimal (Flash Only)</option>
+                    <option value="low" data-i18n="thinkingLowFaster">Low (Faster)</option>
+                    <option value="medium" data-i18n="thinkingMediumBalanced">Medium (Balanced)</option>
+                    <option value="high" data-i18n="thinkingHighDeepReasoning">High (Deep Reasoning)</option>
                 </select>
             </div>
             <label style="display: flex; align-items: center; gap: 8px;">
@@ -52,16 +52,16 @@ export const ConnectionSettingsTemplate = `
                 <input type="password" id="openai-api-key" class="shortcut-input" style="width: 100%; text-align: left; box-sizing: border-box;" data-i18n-placeholder="apiKeyPlaceholder" placeholder="sk-...">
             </div>
             <div>
-                <label style="font-weight: 500; display: block; margin-bottom: 2px;">Model IDs (Comma separated)</label>
-                <input type="text" id="openai-model" class="shortcut-input" style="width: 100%; text-align: left; box-sizing: border-box;" placeholder="e.g. gpt-4o, claude-3-5-sonnet">
+                <label data-i18n="modelIdsCommaSeparated" style="font-weight: 500; display: block; margin-bottom: 2px;">Model IDs (Comma separated)</label>
+                <input type="text" id="openai-model" class="shortcut-input" style="width: 100%; text-align: left; box-sizing: border-box;" data-i18n-placeholder="modelIdPlaceholder" placeholder="e.g. gpt-4o, claude-3-5-sonnet">
             </div>
             <div>
-                <label style="font-weight: 500; display: block; margin-bottom: 2px;">Thinking Level</label>
+                <label data-i18n="thinkingLevel" style="font-weight: 500; display: block; margin-bottom: 2px;">Thinking Level</label>
                 <select id="openai-thinking-level-select" class="shortcut-input" style="width: 100%; text-align: left; padding: 6px 12px;">
-                    <option value="minimal">Minimal</option>
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
+                    <option value="minimal" data-i18n="thinkingMinimal">Minimal</option>
+                    <option value="low" data-i18n="thinkingLow">Low</option>
+                    <option value="medium" data-i18n="thinkingMedium">Medium</option>
+                    <option value="high" data-i18n="thinkingHigh">High</option>
                 </select>
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -77,13 +77,13 @@ export const ConnectionSettingsTemplate = `
         </div>
     </div>
 
-    <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.03); border-radius: 8px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+    <div style="margin-top: 12px; padding: 12px; background: var(--bg-setting-panel); border-radius: 8px;">
+        <div class="mcp-summary-row" style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
             <div>
                 <label data-i18n="mcpTools" style="font-weight: 500; display: block; margin-bottom: 2px;">External MCP Tools</label>
                 <div data-i18n="mcpToolsDesc" style="font-size: 12px; opacity: 0.85;">Connect to a local/remote MCP server and use its tools in chat.</div>
             </div>
-            <label style="display: flex; align-items: center; gap: 8px;">
+            <label class="setting-inline-toggle" style="display: flex; align-items: center; gap: 8px;">
                 <input type="checkbox" id="mcp-enabled" />
                 <span data-i18n="enabled">Enabled</span>
             </label>
@@ -121,7 +121,7 @@ export const ConnectionSettingsTemplate = `
                 <div data-i18n="mcpHeadersDesc" style="font-size: 11px; opacity: 0.75; margin-top: 4px;">Optional JSON object. Applied to SSE and Streamable HTTP requests.</div>
             </div>
             <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-                <label style="display: flex; align-items: center; gap: 8px;">
+                <label class="setting-inline-toggle" style="display: flex; align-items: center; gap: 8px;">
                     <input type="checkbox" id="mcp-server-enabled" />
                     <span data-i18n="enabled">Enabled</span>
                 </label>
@@ -129,7 +129,7 @@ export const ConnectionSettingsTemplate = `
             </div>
             <div id="mcp-test-status" style="font-size: 12px; opacity: 0.85;"></div>
 
-            <div style="margin-top: 6px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 10px;">
+            <div style="margin-top: 6px; padding-top: 10px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;">
                 <div>
                     <label data-i18n="mcpToolMode" style="font-weight: 500; display: block; margin-bottom: 6px;">Expose Tools</label>
                     <select id="mcp-tool-mode" class="shortcut-input" style="width: 100%; text-align: left; padding: 6px 12px;">
@@ -138,7 +138,7 @@ export const ConnectionSettingsTemplate = `
                     </select>
                 </div>
 
-                <div style="display: flex; gap: 8px; align-items: center;">
+                <div class="mcp-action-row" style="display: flex; gap: 8px; align-items: center;">
                     <button id="mcp-refresh-tools" class="tool-btn" style="padding: 6px 10px;" type="button" data-i18n="mcpRefreshTools">Refresh Tools</button>
                     <button id="mcp-enable-all-tools" class="tool-btn" style="padding: 6px 10px;" type="button" data-i18n="mcpEnableAllTools">Enable All</button>
                     <button id="mcp-disable-all-tools" class="tool-btn" style="padding: 6px 10px;" type="button" data-i18n="mcpDisableAllTools">Disable All</button>
@@ -148,7 +148,7 @@ export const ConnectionSettingsTemplate = `
 
                 <div id="mcp-tools-summary" style="font-size: 12px; opacity: 0.85;"></div>
 
-                <div id="mcp-tool-list" style="max-height: 220px; overflow: auto; padding: 8px; background: rgba(255,255,255,0.55); border-radius: 8px; border: 1px solid rgba(0,0,0,0.06);"></div>
+                <div id="mcp-tool-list" class="mcp-tool-list" style="max-height: 220px; overflow: auto; padding: 8px; background: var(--bg-input); border-radius: 8px; border: 1px solid var(--border-color);"></div>
             </div>
         </div>
     </div>

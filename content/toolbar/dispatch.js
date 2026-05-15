@@ -96,11 +96,10 @@
                 case 'ask':
                     if (this.controller.currentSelection) {
                         this.controller.hide(); // Hides small toolbar
-                        const isZh = navigator.language.startsWith('zh');
                         this.ui.showAskWindow(
                             this.controller.lastRect,
                             this.controller.currentSelection,
-                            isZh ? '询问' : 'Ask Gemini',
+                            window.GeminiToolbarStrings?.ask || 'Ask Gemini',
                             this.controller.lastMousePoint
                         );
                         this.controller.visible = true; // Mark window as visible

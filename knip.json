@@ -3,6 +3,7 @@
         "background/index.js",
         "sidepanel/index.html",
         "sidepanel/index.js",
+        "sidepanel/preload.js",
         "sandbox/index.html",
         "sandbox/index.js",
         "content/overlay.js",

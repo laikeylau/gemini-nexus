@@ -17,7 +17,7 @@ describe('connection settings helpers', () => {
             openaiSelectedModel: '',
             officialBaseUrl: 'https://generativelanguage.googleapis.com/v1beta',
             apiKey: '',
-            officialModel: 'gemini-3-flash-preview, gemini-3-pro-preview',
+            officialModel: 'gemini-3-flash-preview, gemini-3.1-pro-preview',
             thinkingLevel: 'low',
             officialWebSearch: false,
             openaiBaseUrl: '',

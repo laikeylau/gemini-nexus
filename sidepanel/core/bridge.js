@@ -65,6 +65,25 @@ export class MessageBridge {
             }
             return;
         }
+        if (action === 'REQUEST_SCREEN_CAPTURE') {
+            this._captureDisplayStill()
+                .then((payload) => {
+                    this.frame.postMessage({
+                        action: 'BACKGROUND_MESSAGE',
+                        payload,
+                    });
+                })
+                .catch((error) => {
+                    this.frame.postMessage({
+                        action: 'BACKGROUND_MESSAGE',
+                        payload: {
+                            action: 'SCREEN_CAPTURE_ERROR',
+                            error: error?.message || 'Screen capture failed',
+                        },
+                    });
+                });
+            return;
+        }
 
         // 3. Background Forwarding
         if (action === 'FORWARD_TO_BACKGROUND') {
@@ -247,6 +266,63 @@ export class MessageBridge {
             action: 'BACKGROUND_MESSAGE',
             payload: message,
         });
+    }
+
+    async _captureDisplayStill() {
+        const mediaDevices = navigator.mediaDevices;
+        if (!mediaDevices || typeof mediaDevices.getDisplayMedia !== 'function') {
+            throw new Error('Screen capture is not supported in this browser.');
+        }
+
+        const stream = await mediaDevices.getDisplayMedia({
+            video: true,
+            audio: false,
+        });
+
+        try {
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.muted = true;
+            video.playsInline = true;
+
+            const metadataReady = new Promise((resolve, reject) => {
+                const cleanup = () => {
+                    video.removeEventListener('loadedmetadata', handleReady);
+                    video.removeEventListener('error', handleError);
+                };
+                const handleReady = () => {
+                    cleanup();
+                    resolve();
+                };
+                const handleError = () => {
+                    cleanup();
+                    reject(new Error('Failed to read selected screen.'));
+                };
+
+                video.addEventListener('loadedmetadata', handleReady, { once: true });
+                video.addEventListener('error', handleError, { once: true });
+            });
+            await video.play();
+            await metadataReady;
+
+            const width = video.videoWidth || 1;
+            const height = video.videoHeight || 1;
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Failed to prepare screen capture.');
+            ctx.drawImage(video, 0, 0, width, height);
+
+            return {
+                action: 'FETCH_IMAGE_RESULT',
+                base64: canvas.toDataURL('image/png'),
+                type: 'image/png',
+                name: 'screen_capture.png',
+            };
+        } finally {
+            stream.getTracks().forEach((track) => track.stop());
+        }
     }
 
     _attachCurrentTabContext(payload) {

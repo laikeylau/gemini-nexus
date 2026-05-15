@@ -9,12 +9,15 @@ export class ChatController {
         this.inputFn = elements.inputFn;
         this.sendBtn = elements.sendBtn;
         this.pageContextBtn = document.getElementById('page-context-btn');
+        this.footerEl = document.querySelector('.footer');
         this.shouldFollowBottom = true;
         this.scrollFrame = null;
         this.resizeObserver = null;
+        this.footerResizeObserver = null;
         this.observedResizeElements = new WeakSet();
 
         this.initListeners();
+        this.initFooterOffsetSync();
     }
 
     initListeners() {
@@ -23,6 +26,7 @@ export class ChatController {
             this.inputFn.addEventListener('input', () => {
                 this.inputFn.style.height = 'auto';
                 this.inputFn.style.height = this.inputFn.scrollHeight + 'px';
+                this.updateFooterOffset();
             });
         }
 
@@ -58,7 +62,7 @@ export class ChatController {
 
                     // Visual Feedback
                     const originalHtml = btn.innerHTML;
-                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Copied</span>`;
+                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg><span>${t('copied')}</span>`;
 
                     setTimeout(() => {
                         btn.innerHTML = originalHtml;
@@ -74,6 +78,25 @@ export class ChatController {
                 passive: true,
             });
             this.initScrollObservers();
+        }
+    }
+
+    initFooterOffsetSync() {
+        this.updateFooterOffset();
+
+        if (!this.footerEl || typeof ResizeObserver === 'undefined') return;
+
+        this.footerResizeObserver = new ResizeObserver(() => this.updateFooterOffset());
+        this.footerResizeObserver.observe(this.footerEl);
+    }
+
+    updateFooterOffset() {
+        if (!this.footerEl) return;
+
+        const rect = this.footerEl.getBoundingClientRect();
+        const height = Math.ceil(rect.height || 0);
+        if (height > 0) {
+            document.documentElement.style.setProperty('--footer-height', `${height}px`);
         }
     }
 
@@ -211,6 +234,7 @@ export class ChatController {
         if (this.inputFn) {
             this.inputFn.value = '';
             this.inputFn.style.height = 'auto'; // Reset height only once
+            this.updateFooterOffset();
             this.inputFn.focus();
         }
     }

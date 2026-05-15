@@ -120,6 +120,85 @@ describe('RequestDispatcher response mapping', () => {
         expect(prepareManagedContext).toHaveBeenCalled();
     });
 
+    it('allows OpenAI Chat Completions web search for official search models', async () => {
+        sendOpenAIMessage.mockResolvedValue({
+            text: 'openai text',
+            thoughts: null,
+            sources: [],
+            images: [],
+        });
+        const dispatcher = new RequestDispatcher({});
+
+        await expect(
+            dispatcher.dispatch(
+                { text: 'hello', model: 'gpt-5-search-api', sessionId: null },
+                {
+                    provider: 'openai',
+                    openaiBaseUrl: 'https://api.openai.com/v1',
+                    openaiApiKey: 'key',
+                    openaiModel: 'gpt-5-search-api',
+                    openaiUseResponsesApi: false,
+                    openaiWebSearch: true,
+                },
+                [],
+                vi.fn(),
+                null
+            )
+        ).resolves.toEqual(expect.objectContaining({ status: 'success' }));
+    });
+
+    it('rejects OpenAI Chat Completions web search for non-search official models', async () => {
+        const dispatcher = new RequestDispatcher({});
+
+        await expect(
+            dispatcher.dispatch(
+                { text: 'hello', model: 'gpt-5', sessionId: null },
+                {
+                    provider: 'openai',
+                    openaiBaseUrl: 'https://api.openai.com/v1',
+                    openaiApiKey: 'key',
+                    openaiModel: 'gpt-5',
+                    openaiUseResponsesApi: false,
+                    openaiWebSearch: true,
+                    openaiThinkingLevel: 'low',
+                },
+                [],
+                vi.fn(),
+                null
+            )
+        ).rejects.toThrow(/Chat Completions web search requires an OpenAI search model/);
+
+        expect(sendOpenAIMessage).not.toHaveBeenCalled();
+    });
+
+    it('does not apply Chat Completions search-model restrictions to Responses API web search', async () => {
+        sendOpenAIMessage.mockResolvedValue({
+            text: 'openai text',
+            thoughts: null,
+            sources: [],
+            images: [],
+        });
+        const dispatcher = new RequestDispatcher({});
+
+        await expect(
+            dispatcher.dispatch(
+                { text: 'hello', model: 'gpt-5', sessionId: null },
+                {
+                    provider: 'openai',
+                    openaiBaseUrl: 'https://api.openai.com/v1',
+                    openaiApiKey: 'key',
+                    openaiModel: 'gpt-5',
+                    openaiUseResponsesApi: true,
+                    openaiWebSearch: true,
+                    openaiThinkingLevel: 'low',
+                },
+                [],
+                vi.fn(),
+                null
+            )
+        ).resolves.toEqual(expect.objectContaining({ status: 'success' }));
+    });
+
     it('maps web provider responses without persisting Web auth context into chat history', async () => {
         sendWebMessage.mockResolvedValue({
             text: 'web text',

@@ -1,3 +1,5 @@
+import { formatT, t } from '../../../core/i18n.js';
+
 const UNGROUPED_TOOLS_KEY = '(other)';
 
 function createHelpText(text) {
@@ -11,17 +13,19 @@ function createHelpText(text) {
 export function getMcpToolsSummaryText({ server, tools, toolMode, enabledSet }) {
     const total = Array.isArray(tools) ? tools.length : 0;
     const enabledCount = toolMode === 'all' ? total : enabledSet.size;
-    const modeLabel = toolMode === 'all' ? 'all' : 'selected';
+    const modeLabel = toolMode === 'all' ? t('mcpModeAll') : t('mcpModeSelected');
 
     if (!server.url || !server.url.trim()) {
-        return 'Set Server URL to manage tools.';
+        return t('mcpSummarySetServerUrl');
     }
     if (total === 0) {
-        return toolMode === 'all'
-            ? 'All tools will be exposed. Click "Refresh Tools" to preview the tool list.'
-            : 'No tool list loaded. Click "Refresh Tools" to load tools, then select which to expose.';
+        return toolMode === 'all' ? t('mcpSummaryAllTools') : t('mcpSummaryNoTools');
     }
-    return `Mode: ${modeLabel}. Tools exposed: ${enabledCount}/${total}.`;
+    return formatT('mcpSummarySelected', {
+        mode: modeLabel,
+        count: enabledCount,
+        total,
+    });
 }
 
 export function groupMcpTools(tools, search = '') {
@@ -153,7 +157,7 @@ function renderToolGroup(groupName, tools, enabledSet, uiState, onToolsChange) {
     const groupTitle = document.createElement('div');
     groupTitle.style.fontSize = '12px';
     groupTitle.style.fontWeight = '600';
-    groupTitle.textContent = groupName === UNGROUPED_TOOLS_KEY ? 'Other tools' : groupName;
+    groupTitle.textContent = groupName === UNGROUPED_TOOLS_KEY ? t('mcpOtherTools') : groupName;
 
     left.appendChild(groupCheckbox);
     left.appendChild(groupTitle);
@@ -204,16 +208,12 @@ export function renderMcpToolsUI({
     listElement.innerHTML = '';
 
     if (toolMode === 'all') {
-        listElement.appendChild(
-            createHelpText(
-                'Switch to "Selected tools only" to choose which tools the model can use.'
-            )
-        );
+        listElement.appendChild(createHelpText(t('mcpSwitchToSelected')));
         return;
     }
 
     if (cached.length === 0) {
-        listElement.appendChild(createHelpText('No tools loaded yet.'));
+        listElement.appendChild(createHelpText(t('mcpNoToolsLoaded')));
         return;
     }
 

@@ -19,6 +19,7 @@ import {
     parseMcpHeadersText,
 } from './connection_utils.js';
 import { renderMcpToolsUI } from './mcp_tools_view.js';
+import { t } from '../../../core/i18n.js';
 
 export class ConnectionSection {
     constructor() {
@@ -216,7 +217,7 @@ export class ConnectionSection {
                 const server = this._getActiveServer();
                 if (!server) return;
 
-                this.setMcpTestStatus('Fetching tools...');
+                this.setMcpTestStatus(t('mcpFetchingTools'));
                 sendToBackground({
                     action: 'MCP_LIST_TOOLS',
                     serverId: server.id,
@@ -258,7 +259,7 @@ export class ConnectionSection {
                 const server = this._getActiveServer();
                 if (!server) return;
 
-                this.setMcpTestStatus('Testing connection...');
+                this.setMcpTestStatus(t('mcpTestingConnection'));
                 sendToBackground({
                     action: 'MCP_TEST_CONNECTION',
                     serverId: server.id,
@@ -471,7 +472,7 @@ export class ConnectionSection {
                 server.headers = parseMcpHeadersText(mcpHeaders.value);
                 this.setMcpTestStatus('');
             } catch (e) {
-                this.setMcpTestStatus(e.message || 'Invalid request headers.', true);
+                this.setMcpTestStatus(e.message || t('mcpConnectionFailed'), true);
                 return false;
             }
         }
@@ -528,7 +529,7 @@ export class ConnectionSection {
             opt.value = server.id;
 
             const name = (server.name || '').trim();
-            const label = name || server.url || 'MCP Server';
+            const label = name || server.url || t('defaultMcpServer');
             // Show enabled status with checkmark or cross
             const status = server.enabled === false ? '✗' : '✓';
             opt.textContent = `${status} ${label}`;

@@ -11,7 +11,8 @@
         "alarms",
         "debugger",
         "downloads",
-        "tabs"
+        "tabs",
+        "tabGroups"
     ],
     "host_permissions": ["https://gemini.google.com/*", "<all_urls>"],
     "background": {

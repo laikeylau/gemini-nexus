@@ -31,4 +31,17 @@ describe('FrameManager', () => {
             'chrome-extension://test-id/sandbox/index.html?theme=dark&lang=zh-CN'
         );
     });
+
+    it('falls back to the local sandbox URL when chrome.runtime is unavailable', () => {
+        delete globalThis.chrome;
+        localStorage.setItem('geminiTheme', 'light');
+        localStorage.setItem('geminiLanguage', 'en');
+
+        const manager = new FrameManager();
+        manager.init();
+
+        expect(document.getElementById('sandbox-frame').src).toBe(
+            'http://localhost:3000/sandbox/index.html?theme=light&lang=en'
+        );
+    });
 });

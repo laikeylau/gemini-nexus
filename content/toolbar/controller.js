@@ -84,6 +84,11 @@
             // Initialize Modules
             this.imageDetector.init();
             this.streamHandler.init();
+
+            window.addEventListener('gemini-toolbar-language-changed', () => {
+                this.ui.rebuildForLanguageChange();
+                this.syncSettings();
+            });
         }
 
         async syncSettings() {
@@ -144,7 +149,6 @@
          */
         async handleCropResult(request) {
             // 截图已经由 background 完成并发送到了这里
-            const isZh = navigator.language.startsWith('zh');
             const rect = {
                 left: window.innerWidth / 2 - 200,
                 top: 100,
@@ -297,12 +301,12 @@
             };
 
             this.ui.hide();
-            const isZh = navigator.language.startsWith('zh');
+            const strings = window.GeminiToolbarStrings || {};
 
             // 如果带网页上下文，修改标题
-            let title = isZh ? '询问' : 'Ask Gemini';
+            let title = strings.ask || 'Ask Gemini';
             if (withPageContext) {
-                title = isZh ? '与当前网页对话' : 'Chat with Page';
+                title = strings.chatWithPage || 'Chat with Page';
             }
 
             this.ui.showAskWindow(rect, null, title);

@@ -169,8 +169,19 @@ export class UIController {
     }
 
     toggleTabSwitcher(show) {
-        if (this.tabSwitcherBtn) {
-            this.tabSwitcherBtn.style.display = show ? 'flex' : 'none';
+        if (this.tabSelector) {
+            this.tabSelector.setControlVisible(show);
         }
+        if (this.tabSwitcherBtn) {
+            this.tabSwitcherBtn.style.display = 'none';
+        }
+    }
+
+    updateBrowserControlState(state) {
+        if (this.tabSelector) this.tabSelector.updateControlState(state);
+    }
+
+    setBrowserControlCallbacks(callbacks) {
+        if (this.tabSelector) this.tabSelector.setControlCallbacks(callbacks);
     }
 }

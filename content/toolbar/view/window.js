@@ -3,9 +3,9 @@
     const Utils = window.GeminiViewUtils;
     const ICONS = window.GeminiToolbarIcons;
 
-    // Simple helper
-    const isZh = navigator.language.startsWith('zh');
-    const DEFAULT_TITLE = isZh ? '询问' : 'Ask';
+    function getDefaultTitle() {
+        return window.GeminiToolbarStrings?.ask || 'Ask Gemini';
+    }
 
     function isAllowedErrorLink(href) {
         try {
@@ -99,7 +99,7 @@
             }
 
             // Reset Content
-            this.elements.windowTitle.textContent = title || DEFAULT_TITLE;
+            this.elements.windowTitle.textContent = title || getDefaultTitle();
             if (contextText) {
                 this.elements.contextPreview.textContent = contextText;
                 this.elements.contextPreview.classList.remove('hidden');
@@ -207,7 +207,7 @@
                 <div style="padding: 12px 0; color: #d93025;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600;">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-                        <span>Error</span>
+                        <span>${window.GeminiToolbarStrings?.error || 'Error'}</span>
                     </div>
                     <div class="gemini-error-text" style="font-size: 14px; line-height: 1.5; color: #1f1f1f;"></div>
                 </div>

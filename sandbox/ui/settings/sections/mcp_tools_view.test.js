@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it, vi } from 'vitest';
+import { setLanguagePreference } from '../../../core/i18n.js';
 import { getMcpToolsSummaryText, groupMcpTools, renderMcpToolsUI } from './mcp_tools_view.js';
 
 describe('MCP tools view', () => {
     it('summarizes tool exposure state', () => {
+        setLanguagePreference('zh');
+
         expect(
             getMcpToolsSummaryText({
                 server: { url: '' },
@@ -12,7 +15,7 @@ describe('MCP tools view', () => {
                 toolMode: 'all',
                 enabledSet: new Set(),
             })
-        ).toBe('Set Server URL to manage tools.');
+        ).toBe('请先设置服务器地址以管理工具。');
 
         expect(
             getMcpToolsSummaryText({
@@ -21,9 +24,7 @@ describe('MCP tools view', () => {
                 toolMode: 'selected',
                 enabledSet: new Set(),
             })
-        ).toBe(
-            'No tool list loaded. Click "Refresh Tools" to load tools, then select which to expose.'
-        );
+        ).toBe('尚未加载工具列表。点击“刷新工具列表”后选择要暴露的工具。');
 
         expect(
             getMcpToolsSummaryText({
@@ -32,7 +33,9 @@ describe('MCP tools view', () => {
                 toolMode: 'selected',
                 enabledSet: new Set(['a']),
             })
-        ).toBe('Mode: selected. Tools exposed: 1/2.');
+        ).toBe('模式：已选择。已暴露工具：1/2。');
+
+        setLanguagePreference('en');
     });
 
     it('groups tools by prefix and keeps ungrouped tools last', () => {
@@ -52,6 +55,8 @@ describe('MCP tools view', () => {
     });
 
     it('renders selected tool checkboxes and updates enabled tools', () => {
+        setLanguagePreference('zh');
+
         const server = {
             id: 'srv',
             url: 'http://localhost/mcp',
@@ -75,7 +80,7 @@ describe('MCP tools view', () => {
             onToolsChange: rerender,
         });
 
-        expect(summary.textContent).toBe('Mode: selected. Tools exposed: 1/2.');
+        expect(summary.textContent).toBe('模式：已选择。已暴露工具：1/2。');
         expect(list.querySelector('summary')?.textContent).toContain('browser');
         expect(list.querySelector('summary')?.textContent).toContain('1/2');
 
@@ -87,5 +92,7 @@ describe('MCP tools view', () => {
 
         expect(server.enabledTools.sort()).toEqual(['browser.click', 'browser.snapshot']);
         expect(rerender).toHaveBeenCalledTimes(1);
+
+        setLanguagePreference('en');
     });
 });

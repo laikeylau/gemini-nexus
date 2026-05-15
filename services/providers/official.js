@@ -135,6 +135,21 @@ function buildMessageContent(msg, targetModel) {
     return { role: fallbackRole, parts };
 }
 
+function normalizeOfficialModel(model) {
+    if (model === 'gemini-3-flash') return 'gemini-3-flash-preview';
+    if (model === 'gemini-3-flash-thinking') return 'gemini-3-flash-preview';
+    if (model === 'gemini-3-pro') return 'gemini-3.1-pro-preview';
+    if (model === 'gemini-3-pro-preview') return 'gemini-3.1-pro-preview';
+    return model;
+}
+
+function normalizeThinkingLevelForModel(targetModel, thinkingLevel) {
+    if (targetModel === 'gemini-3.1-pro-preview' && thinkingLevel === 'minimal') {
+        return DEFAULT_THINKING_LEVEL;
+    }
+    return thinkingLevel;
+}
+
 export function extractOfficialResponseData(candidate) {
     const modelParts = [];
     const functionCalls = [];
@@ -224,13 +239,7 @@ export async function sendOfficialMessage(
     }
 
     // Explicit Mapping logic
-    if (targetModel === 'gemini-3-flash') {
-        targetModel = 'gemini-3-flash-preview';
-    } else if (targetModel === 'gemini-3-flash-thinking') {
-        targetModel = 'gemini-3-flash-preview'; // Flash with thinking intent
-    } else if (targetModel === 'gemini-3-pro') {
-        targetModel = 'gemini-3-pro-preview';
-    }
+    targetModel = normalizeOfficialModel(targetModel);
 
     console.debug(`[Gemini Official API] Requesting ${targetModel} (Original: ${modelName})...`);
 
@@ -279,7 +288,10 @@ export async function sendOfficialMessage(
     if (modelName === 'gemini-3-flash-thinking' || thinkingLevel) {
         payload.generationConfig.thinkingConfig = {
             includeThoughts: true, // Ensure thoughts are returned in response
-            thinkingLevel: thinkingLevel || DEFAULT_THINKING_LEVEL,
+            thinkingLevel: normalizeThinkingLevelForModel(
+                targetModel,
+                thinkingLevel || DEFAULT_THINKING_LEVEL
+            ),
         };
     }
 

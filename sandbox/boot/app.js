@@ -1,6 +1,6 @@
 // sandbox/boot/app.js
 import { renderLayout } from '../ui/layout.js';
-import { applyTranslations } from '../core/i18n.js';
+import { applyTranslations, t } from '../core/i18n.js';
 import { configureMarkdown } from '../render/config.js';
 import { sendToBackground } from '../../shared/messaging/index.js';
 import { loadLibs, MARKDOWN_READY_EVENT } from './loader.js';
@@ -61,7 +61,7 @@ export function initAppMode() {
             },
             {
                 onUrlDrop: (url) => {
-                    ui.updateStatus('Loading image...');
+                    ui.updateStatus(t('loadingImage'));
                     sendToBackground({ action: 'FETCH_IMAGE', url: url });
                 },
             }

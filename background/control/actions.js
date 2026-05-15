@@ -10,11 +10,16 @@ import { WaitForHelper } from './wait_helper.js';
  * Facade class that aggregates specific action modules.
  */
 export class BrowserActions {
-    constructor(connection, snapshotManager) {
+    constructor(connection, snapshotManager, groupContext = {}) {
         // Initialize shared WaitHelper with default multipliers (1, 1)
         this.waitHelper = new WaitForHelper(connection);
 
-        this.navigation = new NavigationActions(connection, snapshotManager, this.waitHelper);
+        this.navigation = new NavigationActions(
+            connection,
+            snapshotManager,
+            this.waitHelper,
+            groupContext
+        );
         this.input = new InputActions(connection, snapshotManager, this.waitHelper);
         this.observation = new ObservationActions(connection, snapshotManager, this.waitHelper);
         this.emulation = new EmulationActions(connection, snapshotManager, this.waitHelper);

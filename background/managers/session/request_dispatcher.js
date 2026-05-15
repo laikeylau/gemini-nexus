@@ -87,6 +87,34 @@ function assertOpenAIWebSearchSupported(model, reasoningEffort) {
     }
 }
 
+function isOpenAIOfficialBaseUrl(baseUrl) {
+    try {
+        const url = new URL(baseUrl);
+        return url.hostname === 'api.openai.com';
+    } catch (_) {
+        return false;
+    }
+}
+
+function assertOpenAIChatWebSearchSupported(model, baseUrl) {
+    if (!isOpenAIOfficialBaseUrl(baseUrl)) return;
+
+    const normalizedModel = String(model || '')
+        .trim()
+        .toLowerCase();
+    const supportedModels = new Set([
+        'gpt-5-search-api',
+        'gpt-4o-search-preview',
+        'gpt-4o-mini-search-preview',
+    ]);
+
+    if (!supportedModels.has(normalizedModel)) {
+        throw new Error(
+            'Chat Completions web search requires an OpenAI search model such as gpt-5-search-api. Use Responses API web search or choose a search model.'
+        );
+    }
+}
+
 async function resolveRequestHistory(request, files = request.files) {
     const overrideHistory = getRequestHistory(request);
     if (overrideHistory) return overrideHistory;
@@ -272,6 +300,9 @@ export class RequestDispatcher {
 
         if (config.webSearch) {
             assertOpenAIWebSearchSupported(config.model, config.reasoningEffort);
+            if (!config.useResponsesApi) {
+                assertOpenAIChatWebSearchSupported(config.model, config.baseUrl);
+            }
         }
 
         const history = await resolveRequestHistory(request, files);

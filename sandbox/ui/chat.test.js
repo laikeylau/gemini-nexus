@@ -43,6 +43,24 @@ function createController() {
     return { controller, historyDiv };
 }
 
+describe('ChatController footer spacing', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        document.documentElement.style.removeProperty('--footer-height');
+        document.body.innerHTML = '<div class="footer"></div>';
+    });
+
+    it('publishes the measured footer height for chat-history padding', () => {
+        const footer = document.querySelector('.footer');
+        footer.getBoundingClientRect = vi.fn(() => ({ height: 298.2 }));
+
+        const { controller } = createController();
+        controller.updateFooterOffset();
+
+        expect(document.documentElement.style.getPropertyValue('--footer-height')).toBe('299px');
+    });
+});
+
 describe('ChatController streaming scroll following', () => {
     beforeEach(() => {
         vi.clearAllMocks();

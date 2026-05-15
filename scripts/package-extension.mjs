@@ -33,6 +33,7 @@ const requiredPaths = [
     'services',
     'dist/assets',
     'dist/sidepanel/index.html',
+    'dist/sidepanel/preload.js',
     'dist/sandbox/index.html',
 ];
 
@@ -181,6 +182,7 @@ async function main() {
         copyLocalDependencyAssets(),
         copyIntoPackage('dist/assets', 'assets'),
         copyIntoPackage('dist/sidepanel/index.html', 'sidepanel/index.html'),
+        copyIntoPackage('dist/sidepanel/preload.js', 'sidepanel/preload.js'),
         copyIntoPackage('dist/sandbox/index.html', 'sandbox/index.html'),
     ]);
 

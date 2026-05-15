@@ -3,6 +3,7 @@ import { loadLibs } from './loader.js';
 import { transformMarkdown } from '../render/pipeline.js';
 import { WatermarkRemover } from '../../shared/media/watermark_remover.js';
 import { getHighResImageUrl } from '../../shared/utils/index.js';
+import { t } from '../core/i18n.js';
 
 function escapeAttribute(value) {
     return String(value || '')
@@ -66,7 +67,7 @@ export function initRendererMode() {
                         const imgReqId =
                             'gen_img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
                         const targetUrl = getHighResImageUrl(imgData.url);
-                        const alt = escapeAttribute(imgData.alt || 'Generated Image');
+                        const alt = escapeAttribute(imgData.alt || t('generatedImage'));
 
                         imageHtml += `<img class="generated-image loading" alt="${alt}" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxIDEiPjwvc3ZnPg==" data-req-id="${imgReqId}">`;
 

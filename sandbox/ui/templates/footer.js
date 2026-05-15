@@ -46,6 +46,14 @@ export const FooterTemplate = `
                     </svg>
                     <span data-i18n="screenshotTranslate">Translate</span>
                 </button>
+                <button id="screen-capture-btn" class="tool-btn" data-i18n-title="screenCaptureTooltip" title="Capture another screen or app window">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="4" width="18" height="12" rx="2"></rect>
+                        <path d="M8 20h8"></path>
+                        <path d="M12 16v4"></path>
+                    </svg>
+                    <span data-i18n="screenCapture">Screen</span>
+                </button>
                 <button id="snip-btn" class="tool-btn context-aware" data-i18n-title="snipTooltip" title="Capture area to input">
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M6 2v14a2 2 0 0 0 2 2h14"></path>

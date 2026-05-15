@@ -26,6 +26,12 @@ async function listJavaScriptFiles(directory) {
 const classicContentSupportFiles = ['shared/dom/crop_core.js'];
 
 describe('manifest content scripts', () => {
+    it('declares the native tab group permission used by browser control', async () => {
+        const manifest = JSON.parse(await readFile('manifest.json', 'utf8'));
+
+        expect(manifest.permissions).toContain('tabGroups');
+    });
+
     it('lists every runtime content script file exactly once', async () => {
         const manifest = JSON.parse(await readFile('manifest.json', 'utf8'));
         const listedFiles = manifest.content_scripts.flatMap((entry) => entry.js ?? []);

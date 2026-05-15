@@ -74,10 +74,9 @@ class SelectionOverlay {
 
         this.hint = document.createElement('div');
 
-        const isZh = navigator.language.startsWith('zh');
-        this.hint.textContent = isZh
-            ? '拖拽框选区域 / 单击任意处取消'
-            : 'Drag to capture area / Click anywhere to cancel';
+        this.hint.textContent =
+            window.GeminiToolbarStrings?.captureHint ||
+            'Drag to capture area / Click anywhere to cancel';
 
         this.hint.style.cssText = `
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%);

@@ -111,6 +111,12 @@ export class MessageHandler {
             return;
         }
 
+        if (request.action === 'SCREEN_CAPTURE_ERROR') {
+            this.ui.updateStatus(request.error || t('screenCaptureFailed'));
+            setTimeout(() => this.ui.updateStatus(''), 3000);
+            return;
+        }
+
         // 2.1 Generated Image Result (Proxy Fetch for Display)
         if (request.action === 'GENERATED_IMAGE_RESULT') {
             await this.handleGeneratedImageResult(request);

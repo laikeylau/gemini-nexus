@@ -80,4 +80,65 @@ describe('MessageBridge model persistence', () => {
 
         expect(state.save).toHaveBeenCalledWith('geminiModel', 'gemini-3-flash');
     });
+
+    it('captures a selected display and forwards a still frame to the sandbox', async () => {
+        const frame = createFrame();
+        const state = createState();
+        const bridge = new MessageBridge(frame, state);
+        const track = { stop: vi.fn() };
+        const drawImage = vi.fn();
+        const video = {
+            srcObject: null,
+            videoWidth: 640,
+            videoHeight: 360,
+            play: vi.fn(() => Promise.resolve()),
+            removeEventListener: vi.fn(),
+            addEventListener: vi.fn((event, callback) => {
+                if (event === 'loadedmetadata') callback();
+            }),
+        };
+        const canvas = {
+            width: 0,
+            height: 0,
+            getContext: vi.fn(() => ({ drawImage })),
+            toDataURL: vi.fn(() => 'data:image/png;base64,SCREEN'),
+        };
+        const originalCreateElement = document.createElement.bind(document);
+
+        navigator.mediaDevices = {
+            getDisplayMedia: vi.fn(() =>
+                Promise.resolve({
+                    getTracks: () => [track],
+                })
+            ),
+        };
+        vi.spyOn(document, 'createElement').mockImplementation((tagName) => {
+            if (tagName === 'video') return video;
+            if (tagName === 'canvas') return canvas;
+            return originalCreateElement(tagName);
+        });
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: { action: 'REQUEST_SCREEN_CAPTURE' },
+        });
+
+        await vi.waitFor(() =>
+            expect(frame.postMessage).toHaveBeenCalledWith({
+                action: 'BACKGROUND_MESSAGE',
+                payload: {
+                    action: 'FETCH_IMAGE_RESULT',
+                    base64: 'data:image/png;base64,SCREEN',
+                    type: 'image/png',
+                    name: 'screen_capture.png',
+                },
+            })
+        );
+        expect(navigator.mediaDevices.getDisplayMedia).toHaveBeenCalledWith({
+            video: true,
+            audio: false,
+        });
+        expect(drawImage).toHaveBeenCalledWith(video, 0, 0, 640, 360);
+        expect(track.stop).toHaveBeenCalled();
+    });
 });

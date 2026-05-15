@@ -7,8 +7,20 @@ export class TabSelectorController {
         this.listEl = null;
         this.btnClose = null;
         this.triggerBtn = null;
+        this.controlBar = null;
+        this.controlTarget = null;
+        this.controlStop = null;
+        this.controlTitle = null;
+        this.controlMeta = null;
+        this.controlStatus = null;
+        this.controlFavicon = null;
+        this.controlFallbackIcon = null;
         this.onSelect = null;
+        this.onChoose = null;
+        this.onStop = null;
         this.currentLockedId = null;
+        this.controlVisible = false;
+        this.controlState = { tab: null, attached: false };
 
         this.queryElements();
         this.bindEvents();
@@ -19,6 +31,14 @@ export class TabSelectorController {
         this.listEl = document.getElementById('tab-list');
         this.btnClose = document.getElementById('close-tab-selector');
         this.triggerBtn = document.getElementById('tab-switcher-btn');
+        this.controlBar = document.getElementById('browser-control-bar');
+        this.controlTarget = document.getElementById('browser-control-target');
+        this.controlStop = document.getElementById('browser-control-stop');
+        this.controlTitle = document.getElementById('browser-control-title');
+        this.controlMeta = document.getElementById('browser-control-meta');
+        this.controlStatus = document.getElementById('browser-control-status');
+        this.controlFavicon = document.getElementById('browser-control-favicon');
+        this.controlFallbackIcon = document.getElementById('browser-control-fallback-icon');
     }
 
     bindEvents() {
@@ -30,6 +50,75 @@ export class TabSelectorController {
                 if (e.target === this.modal) this.close();
             });
         }
+        if (this.controlTarget) {
+            this.controlTarget.addEventListener('click', () => {
+                if (this.onChoose) {
+                    this.onChoose();
+                    return;
+                }
+                this.triggerBtn?.click();
+            });
+        }
+        if (this.controlStop) {
+            this.controlStop.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this.onStop) this.onStop();
+            });
+        }
+    }
+
+    setControlCallbacks({ onChoose, onStop } = {}) {
+        this.onChoose = typeof onChoose === 'function' ? onChoose : null;
+        this.onStop = typeof onStop === 'function' ? onStop : null;
+    }
+
+    setControlVisible(visible) {
+        this.controlVisible = visible === true;
+        document.body.classList.toggle('browser-control-active', this.controlVisible);
+        if (this.controlBar) {
+            this.controlBar.hidden = !this.controlVisible;
+        }
+    }
+
+    updateControlState({ tab = null, attached = false } = {}) {
+        this.controlState = { tab, attached: attached === true };
+        this.currentLockedId = tab?.id || null;
+        this.renderControlState();
+        this.updateTrigger(tab);
+    }
+
+    renderControlState() {
+        const tab = this.controlState.tab;
+        const attached = this.controlState.attached;
+        const controllable = tab?.controllable !== false;
+
+        if (this.controlTitle) {
+            this.controlTitle.textContent = tab?.title || t('browserControlNoTab');
+        }
+
+        if (this.controlMeta) {
+            this.controlMeta.textContent = tab ? this.formatTabMeta(tab) : '';
+        }
+
+        if (this.controlStatus) {
+            if (!tab) {
+                this.controlStatus.textContent = t('browserControlReady');
+            } else if (!controllable) {
+                this.controlStatus.textContent = t('browserControlUnavailable');
+            } else {
+                this.controlStatus.textContent = attached
+                    ? t('browserControlDebugging')
+                    : t('browserControlReady');
+            }
+        }
+
+        if (this.controlBar) {
+            this.controlBar.classList.toggle('is-attached', attached && controllable);
+            this.controlBar.classList.toggle('is-unavailable', tab && !controllable);
+            this.controlBar.classList.toggle('is-empty', !tab);
+        }
+
+        this.setFavicon(this.controlFavicon, tab?.favIconUrl, this.controlFallbackIcon);
     }
 
     open(tabs, onSelectCallback, lockedTabId) {
@@ -61,10 +150,15 @@ export class TabSelectorController {
         tabs.forEach((tab) => {
             // Is this tab the "Locked" one?
             const isLocked = tab.id === this.currentLockedId;
+            const isControllable = tab.controllable !== false;
 
             const item = document.createElement('div');
             // 'active' in CSS usually denotes selection, here we use it for locked state visibility
-            item.className = `history-item ${isLocked ? 'active' : ''}`;
+            item.className = `history-item browser-tab-item ${isLocked ? 'active' : ''} ${!isControllable ? 'disabled' : ''}`;
+            item.dataset.tabId = String(tab.id);
+            item.setAttribute('role', 'button');
+            item.setAttribute('aria-disabled', String(!isControllable));
+            if (isControllable) item.tabIndex = 0;
 
             // Tab Icon/Favicon
             const icon = document.createElement('img');
@@ -81,8 +175,22 @@ export class TabSelectorController {
             titleSpan.className = 'history-title';
             titleSpan.textContent = tab.title || tab.url;
 
+            const metaSpan = document.createElement('span');
+            metaSpan.className = 'browser-tab-meta';
+            metaSpan.textContent = isControllable
+                ? this.formatTabMeta(tab)
+                : t('browserControlUnavailableReason');
+
+            const copyWrap = document.createElement('span');
+            copyWrap.className = 'browser-tab-copy';
+            copyWrap.appendChild(titleSpan);
+            copyWrap.appendChild(metaSpan);
+
             // Lock Button (Toggle State)
-            const lockBtn = document.createElement('div');
+            const lockBtn = document.createElement('button');
+            lockBtn.type = 'button';
+            lockBtn.className = 'tab-lock-only-btn';
+            lockBtn.disabled = !isControllable;
 
             // Icons
             const CLOSED_LOCK = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
@@ -90,55 +198,31 @@ export class TabSelectorController {
 
             if (isLocked) {
                 lockBtn.innerHTML = CLOSED_LOCK;
-                lockBtn.title = t('unlockTab');
+                lockBtn.title = t('currentTab');
                 lockBtn.style.color = 'var(--primary)';
             } else {
                 lockBtn.innerHTML = OPEN_LOCK;
-                lockBtn.title = t('lockTab');
+                lockBtn.title = t('controlTabInBackground');
                 lockBtn.style.color = 'var(--text-tertiary)';
             }
-
-            Object.assign(lockBtn.style, {
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                marginLeft: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                flexShrink: '0',
-            });
-
-            lockBtn.onmouseenter = () => {
-                lockBtn.style.background = 'var(--btn-hover)';
-            };
-            lockBtn.onmouseleave = () => {
-                lockBtn.style.background = 'transparent';
-            };
 
             // --- Separate Handlers ---
 
             // 1. Lock Button Click: Only Lock/Unlock, NO Switch
             lockBtn.onclick = (e) => {
                 e.stopPropagation(); // Prevent bubbling to item click
+                if (!isControllable) return;
 
-                let nextActionId = tab.id;
-                if (isLocked) {
-                    nextActionId = null; // Unlock
-                    this.resetTrigger();
-                } else {
-                    this.updateTrigger(tab); // Lock
-                }
+                this.updateTrigger(tab);
 
                 // Pass false to indicate we do NOT want to switch visual tab
-                if (this.onSelect) this.onSelect(nextActionId, false);
+                if (this.onSelect) this.onSelect(tab.id, false);
                 this.close();
             };
 
             // 2. Row Click: Switch + Lock
             item.onclick = (e) => {
+                if (!isControllable) return;
                 // If we click the row, we generally want to switch to that tab.
                 // We also ensure it becomes the locked target for control.
 
@@ -150,9 +234,14 @@ export class TabSelectorController {
                 if (this.onSelect) this.onSelect(tab.id, true);
                 this.close();
             };
+            item.onkeydown = (e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                item.click();
+            };
 
             item.appendChild(icon);
-            item.appendChild(titleSpan);
+            item.appendChild(copyWrap);
             item.appendChild(lockBtn);
 
             this.listEl.appendChild(item);
@@ -195,5 +284,35 @@ export class TabSelectorController {
         </svg>`;
         this.triggerBtn.title = t('selectTabTooltip') || 'Select a tab to control';
         this.triggerBtn.style.border = 'none';
+    }
+
+    setFavicon(img, src, fallback) {
+        if (!img) return;
+
+        if (!src) {
+            img.hidden = true;
+            img.removeAttribute('src');
+            if (fallback) fallback.hidden = false;
+            return;
+        }
+
+        img.hidden = false;
+        img.src = src;
+        if (fallback) fallback.hidden = true;
+        img.onerror = () => {
+            img.hidden = true;
+            img.removeAttribute('src');
+            if (fallback) fallback.hidden = false;
+        };
+    }
+
+    formatTabMeta(tab) {
+        const url = tab?.url || '';
+        try {
+            const parsed = new URL(url);
+            return parsed.hostname || url;
+        } catch {
+            return url;
+        }
     }
 }

@@ -47,6 +47,8 @@ function createUi() {
             updateSidePanelScope: vi.fn(),
         },
         toggleTabSwitcher: vi.fn(),
+        updateBrowserControlState: vi.fn(),
+        setBrowserControlCallbacks: vi.fn(),
         updateModelList: vi.fn(),
         updateStatus: vi.fn(),
     };
@@ -211,5 +213,35 @@ describe('AppController session restore behavior', () => {
             },
             '*'
         );
+    });
+
+    it('forwards locked tab updates to the browser control bar state', async () => {
+        const { app, ui } = createAppHarness();
+
+        await app.handleIncomingMessage({
+            data: {
+                action: 'BACKGROUND_MESSAGE',
+                payload: {
+                    action: 'TAB_LOCKED',
+                    attached: true,
+                    tab: {
+                        id: 7,
+                        title: 'OpenAI News',
+                        url: 'https://openai.com/news/',
+                        controllable: true,
+                    },
+                },
+            },
+        });
+
+        expect(ui.updateBrowserControlState).toHaveBeenCalledWith({
+            attached: true,
+            tab: {
+                id: 7,
+                title: 'OpenAI News',
+                url: 'https://openai.com/news/',
+                controllable: true,
+            },
+        });
     });
 });

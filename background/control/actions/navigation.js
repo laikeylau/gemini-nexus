@@ -2,6 +2,33 @@
 import { BaseActionHandler } from './base.js';
 
 export class NavigationActions extends BaseActionHandler {
+    constructor(connection, snapshotManager, waitHelper, groupContext = {}) {
+        super(connection, snapshotManager, waitHelper);
+        this.groupContext = groupContext;
+    }
+
+    getControlledGroupId() {
+        const groupId = this.groupContext.getControlledGroupId?.();
+        return Number.isInteger(groupId) && groupId >= 0 ? groupId : null;
+    }
+
+    getScopedTabQuery() {
+        const query = { currentWindow: true };
+        const groupId = this.getControlledGroupId();
+        if (groupId !== null) query.groupId = groupId;
+        return query;
+    }
+
+    async getScopedTabs() {
+        return await chrome.tabs.query(this.getScopedTabQuery());
+    }
+
+    async addTabToControlledGroup(tabId) {
+        const groupId = this.getControlledGroupId();
+        if (groupId === null || !chrome.tabs?.group) return;
+        await chrome.tabs.group({ groupId, tabIds: [tabId] });
+    }
+
     async navigatePage({ url, type }) {
         // Use currentTabId (attached) or fallback to targetTabId (intent)
         const tabId = this.connection.currentTabId || this.connection.targetTabId;
@@ -44,18 +71,22 @@ export class NavigationActions extends BaseActionHandler {
             tab = win.tabs[0];
         } else {
             tab = await chrome.tabs.create({ url: targetUrl });
+            await this.addTabToControlledGroup(tab.id);
         }
 
         // Return object with metadata so ControlManager can update the locked tab
         return {
             output: `Created new page (id: ${tab.id}) loading ${targetUrl}`,
-            _meta: { switchTabId: tab.id },
+            _meta: {
+                switchTabId: tab.id,
+                allowOutsideControlledGroup: background === true,
+            },
         };
     }
 
     async closePage({ index }) {
         if (index === undefined) return "Error: 'index' is required.";
-        const tabs = await chrome.tabs.query({ currentWindow: true });
+        const tabs = await this.getScopedTabs();
         const tab = tabs[index];
         if (!tab) return `Error: Page index ${index} not found.`;
 
@@ -64,13 +95,13 @@ export class NavigationActions extends BaseActionHandler {
     }
 
     async listPages() {
-        const tabs = await chrome.tabs.query({ currentWindow: true });
+        const tabs = await this.getScopedTabs();
         return tabs.map((t, idx) => `${idx}: ${t.title} (${t.url})`).join('\n');
     }
 
     async selectPage({ index }) {
         // Issue 01: Remove forced foreground switching
-        const tabs = await chrome.tabs.query({ currentWindow: true });
+        const tabs = await this.getScopedTabs();
         const tab = tabs[index];
         if (!tab) return `Error: Index ${index} not found.`;
 

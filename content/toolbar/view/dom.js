@@ -35,6 +35,13 @@
             this.shadow.appendChild(container);
         }
 
+        rerender() {
+            if (!this.shadow) return;
+            this.shadow.innerHTML = '';
+            this._render();
+            this._loadMathLibs();
+        }
+
         _loadMathLibs() {
             // 1. Inject KaTeX CSS into Shadow DOM
             const link = document.createElement('link');

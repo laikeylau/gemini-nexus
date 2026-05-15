@@ -5,7 +5,7 @@
 
 # Gemini Nexus
 
-### 🚀 赋予浏览器原生 AI 灵魂：集成 Gemini 与兼容 API 的全能助手
+### 🚀 赋予浏览器原生 AI 灵魂：集成 Gemini Web、Gemini API 与兼容 API 的全能助手
 
   <p>
     <img src="https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Gemini">
@@ -25,7 +25,7 @@
 
 ## 🌟 项目简介
 
-**Gemini Nexus** 是一款集成 Google Gemini 与 OpenAI Compatible API 能力的 Chrome 扩展程序。它不仅仅是一个侧边栏插件，而是通过注入式的**悬浮工具栏**、强大的**图像 AI 处理**、基于 Chrome DevTools Protocol 的**浏览器控制工具**以及可选的**外部 MCP 工具**，将 AI 的触角伸向网页浏览的每一个交互细节。
+**Gemini Nexus** 是一款集成 Gemini Web、Google Gemini API 与 OpenAI Compatible API 能力的 Chrome 扩展程序。它不仅仅是一个侧边栏插件，而是通过注入式的**悬浮工具栏**、图像与截图输入、基于 Chrome DevTools Protocol 的**浏览器控制工具**以及可选的**外部 MCP 工具**，将 AI 的触角伸向网页浏览的每一个交互细节。
 
 ---
 
@@ -33,11 +33,13 @@
 
 Gemini Nexus 当前围绕浏览器内 AI 工作流提供以下能力：
 
-- **Gemini API** 与 **OpenAI Compatible API** 配置链路，支持自定义 `Base URL`、`API Key` 与 `Model IDs`。
+- **Gemini Web**、**Gemini API** 与 **OpenAI Compatible API** 三种提供方切换，支持自定义 `Base URL`、`API Key` 与 `Model IDs`。
 - **Gemini API Google Search grounding** 支持，并在回复中展示联网来源。
+- **OpenAI Compatible API 联网搜索** 支持，可按当前接口使用 Responses API `web_search` 或 Chat Completions `web_search_options`。
 - **侧边栏按标签页显示范围控制**，支持减少在不需要标签页中的干扰。
 - **历史用户消息编辑**，支持从历史位置重新编辑并继续对话；该能力仅在 API 渠道启用。
 - **上下文管理**，支持摘要压缩和最近 N 轮裁剪，降低长会话超过模型上下文的风险。
+- **浏览器控制受控标签组**，会用 Chrome 原生标签组标识当前任务，并让 `list_pages` / `select_page` 等工具聚焦在受控范围内。
 - 外部链接统一在浏览器新标签页打开，避免在侧边栏中加载外站失败。
 - 扩展身份与本地升级链路会尽量保留设置，提升覆盖安装时的稳定性。
 
@@ -47,11 +49,11 @@ Gemini Nexus 当前围绕浏览器内 AI 工作流提供以下能力：
 
 项目内置了三种驱动方案，通过代码逻辑动态适配不同的使用场景：
 
-| 驱动方案              | 逻辑入口               | 支持模型         | 核心优势                                 | 使用前提                |
-| :-------------------- | :--------------------- | :--------------- | :--------------------------------------- | :---------------------- |
-| **Web Client**        | `web.js`               | Gemini 3 系列    | **免 API Key**，复用 Gemini 网页版会话   | 需保持 Google 账号登录  |
-| **Official API**      | `official.js`          | Pro/Flash 预览版 | **极速响应**，原生支持 **Thinking** 模式 | 需 Google AI Studio Key |
-| **OpenAI Compatible** | `openai_compatible.js` | GPT/Claude 等    | **高扩展性**，支持中转接口               | 需第三方服务密钥        |
+| 驱动方案              | 逻辑入口               | 支持模型                | 核心优势                                                           | 使用前提                |
+| :-------------------- | :--------------------- | :---------------------- | :----------------------------------------------------------------- | :---------------------- |
+| **Web Client**        | `web.js`               | Gemini 3 与图像预览模型 | **免 API Key**，复用 Gemini 网页版会话                             | 需保持 Google 账号登录  |
+| **Official API**      | `official.js`          | Gemini Flash/Pro 预览版 | **极速响应**，支持 **Thinking** 与 Google Search grounding         | 需 Google AI Studio Key |
+| **OpenAI Compatible** | `openai_compatible.js` | GPT/Claude/兼容模型     | **高扩展性**，支持 Chat Completions / Responses API 与可选联网搜索 | 需第三方服务密钥        |
 
 ---
 
@@ -67,6 +69,8 @@ Gemini Nexus 当前围绕浏览器内 AI 工作流提供以下能力：
 | **网络观测** | `get_network_activity`, `list_network_requests`, `get_network_request`             | 查看网络请求列表、状态、头信息及可用响应体        |
 | **脚本执行** | `evaluate_script`, `run_javascript`, `run_script`                                  | 在网页 Context 中运行自定义 JavaScript            |
 | **性能分析** | `performance_start_trace`, `performance_stop_trace`, `performance_analyze_insight` | 记录并分析页面性能指标                            |
+
+浏览器控制启用后会锁定一个目标标签页，并用 Chrome 原生标签组展示当前任务标题。`select_page` 默认只在受控标签组内切换；`new_page` 的普通标签页会加入该组，`background: true` 则会打开独立 popup 窗口以减少焦点干扰。
 
 ---
 
@@ -92,6 +96,7 @@ Gemini Nexus 可以选择连接到一个或多个外部 MCP 服务器（通过 *
     - 启用“外部 MCP 工具” (Enable External MCP Tools)。
     - 新增或选择服务器条目；**活动服务器** (Active Server) 表示当前正在编辑的条目，对话时会使用所有已启用的服务器。
     - 选择传输协议并设置服务器 URL（SSE / 可流式传输的 HTTP / WebSocket）。
+    - 如需自定义请求头，请使用 SSE 或可流式传输的 HTTP；浏览器扩展环境下 WebSocket 传输不支持自定义 headers。
     - 点击**测试连接** (Test Connection) 和**刷新工具** (Refresh Tools)。
 
 3.  可选（当工具较多时推荐）：将**公开工具** (Expose Tools) 设置为**仅限选定工具** (Selected tools only)，然后仅启用您希望模型查看/使用的工具。
@@ -108,10 +113,11 @@ Gemini Nexus 可以选择连接到一个或多个外部 MCP 服务器（通过 *
 
 - **💬 智能侧边栏**：基于 `sidePanel` API，提供毫秒级唤起的对话空间，支持全文搜索历史记录。
 - **🪄 划词工具栏**：注入 Content Script，选中文字即刻进行**翻译、总结、解释、语法修正**，支持一键回填表单。
-- **🖼️ 图像 AI 处理**：
+- **🖼️ 图像与截图输入**：
     - **OCR & 截图翻译**：集成 Canvas 裁剪技术，框选图片区域即刻提取文字并翻译。
+    - **屏幕/窗口截图**：侧边栏可通过浏览器的 `display-capture` 能力选择其他屏幕或应用窗口作为图像输入。
     - **浮窗探测**：自动识别网页图片并生成悬浮 AI 分析按钮。
-    - **水印消除**：内置 `watermark_remover.js` 算法，显著提升生成图像的可视化质量。
+    - **生成图像展示优化**：内置 `watermark_remover.js` 处理链路，用于优化生成图像在侧边栏中的展示效果。
 - **🛡️ 安全渲染**：所有 Markdown、LaTeX 公式及代码块均在 `sandbox` 隔离环境中渲染，确保主页面安全。
 
 ---
@@ -135,7 +141,7 @@ npm install
 npm run package:extension
 ```
 
-打包完成后，Chrome 的 **“加载已解压的扩展程序”** 应选择 `artifacts/chrome-extension`。开发调试时也可以直接加载仓库根目录；`npm run build` 生成的 `dist/` 只是 Vite UI 构建产物，不是完整扩展目录。发布包会把多个 content scripts 按 `manifest.json` 中的顺序合并为单个 `content/index.js`，并重写包内 manifest，避免发布产物依赖一长串手工脚本顺序。
+打包完成后，Chrome 的 **“加载已解压的扩展程序”** 应选择 `artifacts/chrome-extension`。开发调试时也可以直接加载仓库根目录，但发布或手动安装推荐使用打包目录；`npm run build` 生成的 `dist/` 只是 Vite UI 构建产物，不是完整扩展目录。发布包会把多个 content scripts 按 `manifest.json` 中的顺序合并为单个 `content/index.js`，并重写包内 manifest，避免发布产物依赖一长串手工脚本顺序。
 
 ### 技术栈
 

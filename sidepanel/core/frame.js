@@ -17,8 +17,16 @@ export class FrameManager {
             lang: cachedLang,
         });
 
+        const sandboxPath = `sandbox/index.html?${params.toString()}`;
+        const runtime = globalThis.chrome && globalThis.chrome.runtime;
+
         // Set an absolute extension URL to avoid relative-frame navigation errors.
-        this.iframe.src = chrome.runtime.getURL(`sandbox/index.html?${params.toString()}`);
+        if (runtime && typeof runtime.getURL === 'function') {
+            this.iframe.src = runtime.getURL(sandboxPath);
+            return;
+        }
+
+        this.iframe.src = new URL(`../${sandboxPath}`, window.location.href).toString();
     }
 
     reveal() {

@@ -1,6 +1,6 @@
 export const AboutSettingsTemplate = `
 <div class="setting-group">
-    <h4 data-i18n="system">System</h4>
+    <h4 data-i18n="systemSection">System</h4>
     <div class="shortcut-row">
         <label data-i18n="debugLogs">Debug Logs</label>
         <button id="download-logs" class="btn-secondary" style="padding: 6px 12px; font-size: 12px;" data-i18n="downloadLogs">Download Logs</button>

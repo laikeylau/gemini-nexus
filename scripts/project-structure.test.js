@@ -178,6 +178,19 @@ describe('project structure', () => {
         }
     });
 
+    it('keeps extension pages free of inline scripts blocked by extension CSP', async () => {
+        const manifest = await readJson('manifest.json');
+        const extensionCsp = manifest.content_security_policy?.extension_pages || '';
+        const extensionPages = ['sidepanel/index.html'];
+
+        expect(extensionCsp).toContain("script-src 'self'");
+
+        for (const file of extensionPages) {
+            const source = await readFile(path.join(process.cwd(), file), 'utf8');
+            expect(source).not.toMatch(/<script(?![^>]*\bsrc=)[^>]*>/i);
+        }
+    });
+
     it('keeps vendor assets limited to extension runtime resources', async () => {
         await expect(exists('vendor/katex/katex.min.css')).resolves.toBe(true);
         await expect(exists('vendor/highlight.js/atom-one-dark.min.css')).resolves.toBe(true);
@@ -194,6 +207,7 @@ describe('project structure', () => {
             expect.arrayContaining([
                 'background/index.js',
                 'sidepanel/index.html',
+                'sidepanel/preload.js',
                 'sandbox/index.html',
                 'scripts/*.mjs',
                 'scripts/*.test.js',

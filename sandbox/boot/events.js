@@ -28,12 +28,27 @@ export function bindAppEvents(app, ui, setResizeRef) {
     const scrollRightBtn = document.getElementById('tools-scroll-right');
 
     if (toolsRow && scrollLeftBtn && scrollRightBtn) {
+        const updateToolsScrollState = () => {
+            const maxScrollLeft = Math.max(0, toolsRow.scrollWidth - toolsRow.clientWidth);
+            const hasLeft = toolsRow.scrollLeft > 1;
+            const hasRight = toolsRow.scrollLeft < maxScrollLeft - 1;
+
+            toolsRow.parentElement.classList.toggle('has-overflow-left', hasLeft);
+            toolsRow.parentElement.classList.toggle('has-overflow-right', hasRight);
+            scrollLeftBtn.disabled = !hasLeft;
+            scrollRightBtn.disabled = !hasRight;
+        };
+
         scrollLeftBtn.addEventListener('click', () => {
             toolsRow.scrollBy({ left: -150, behavior: 'smooth' });
         });
         scrollRightBtn.addEventListener('click', () => {
             toolsRow.scrollBy({ left: 150, behavior: 'smooth' });
         });
+        toolsRow.addEventListener('scroll', updateToolsScrollState, { passive: true });
+        window.addEventListener('resize', updateToolsScrollState);
+        requestAnimationFrame(updateToolsScrollState);
+        setTimeout(updateToolsScrollState, 300);
     }
 
     // Tools
@@ -66,6 +81,12 @@ export function bindAppEvents(app, ui, setResizeRef) {
             source: 'sidepanel',
         });
         ui.updateStatus(t('selectTranslate'));
+    });
+
+    document.getElementById('screen-capture-btn').addEventListener('click', () => {
+        app.setCaptureMode('screen_capture');
+        window.parent.postMessage({ action: 'REQUEST_SCREEN_CAPTURE' }, '*');
+        ui.updateStatus(t('selectScreenCapture'));
     });
 
     document.getElementById('snip-btn').addEventListener('click', () => {

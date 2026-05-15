@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, describe, expect, it } from 'vitest';
+import { setLanguagePreference } from '../core/i18n.js';
 import { configureMarkdown } from './config.js';
 import { transformMarkdown } from './pipeline.js';
 
@@ -45,12 +46,16 @@ describe('configureMarkdown', () => {
     });
 
     it('keeps the code-copy button for non-empty code blocks', () => {
+        setLanguagePreference('zh');
         globalThis.marked = createMarkedStub();
         configureMarkdown();
 
         const html = transformMarkdown('```json\n{"ok":true}\n```');
 
         expect(html).toContain('copy-code-btn');
+        expect(html).toContain('复制');
+        expect(html).toContain('aria-label="复制代码"');
         expect(html).toContain('{&quot;ok&quot;:true}');
+        setLanguagePreference('en');
     });
 });

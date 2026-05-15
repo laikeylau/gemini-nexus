@@ -78,6 +78,14 @@ function buildToolContinuationPrompt(toolName, output, language) {
     return `[Tool Output from ${toolName}]:\n\`\`\`\n${output}\n\`\`\`\n\n${languageInstruction}\n\n(Proceed with the next step or confirm completion)`;
 }
 
+function getBrowserControlTaskTitle(text) {
+    const normalized = String(text || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+    if (!normalized) return 'Browser control';
+    return normalized.length > 28 ? `${normalized.slice(0, 27)}...` : normalized;
+}
+
 function getToolResultsFiles(toolResults) {
     return toolResults.flatMap((result) => (Array.isArray(result.files) ? result.files : []));
 }
@@ -191,6 +199,9 @@ export class PromptHandler {
                 // AUTO-LOCK: If browser control enabled and no tab locked, lock to active tab
                 if (request.enableBrowserControl && this.controlManager) {
                     this.controlManager.setOwnerSidePanelTabId(request.sidePanelTabId || null);
+                    this.controlManager.setControlTaskTitle(
+                        getBrowserControlTaskTitle(request.text)
+                    );
                     const currentLock = this.controlManager.getTargetTabId();
                     if (!currentLock) {
                         const tabs = await chrome.tabs.query({

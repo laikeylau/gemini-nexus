@@ -3,6 +3,7 @@ import { BrowserConnection } from '../control/connection.js';
 import { SnapshotManager } from '../control/snapshot.js';
 import { BrowserActions } from '../control/actions.js';
 import { ToolDispatcher } from '../control/dispatcher.js';
+import { getTabControlAvailability, toControlTabSummary } from '../control/tabs.js';
 
 /**
  * Main Controller handling Chrome DevTools MCP functionalities.
@@ -12,10 +13,19 @@ export class BrowserControlManager {
     constructor() {
         this.connection = new BrowserConnection();
         this.snapshotManager = new SnapshotManager(this.connection);
-        this.actions = new BrowserActions(this.connection, this.snapshotManager);
+        this.actions = new BrowserActions(this.connection, this.snapshotManager, {
+            getControlledGroupId: () => this.getControlledGroupId(),
+        });
         this.dispatcher = new ToolDispatcher(this.actions, this.snapshotManager);
         this.lockedTabId = null;
         this.ownerSidePanelTabId = null;
+        this.controlGroupTabId = null;
+        this.controlGroupId = null;
+        this.controlTaskTitle = 'Browser control';
+
+        this.connection.onDetach(() => {
+            this._broadcastCurrentLockState();
+        });
 
         // Listen for updates to the locked tab (URL/Favicon changes)
         chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -44,6 +54,7 @@ export class BrowserControlManager {
             chrome.tabs
                 .get(tabId)
                 .then((tab) => {
+                    this._applyNativeTabGroup(tab);
                     this._broadcastLockState(tab);
                 })
                 .catch(() => {
@@ -52,7 +63,16 @@ export class BrowserControlManager {
                     this._broadcastLockState(null);
                 });
         } else {
+            this._clearNativeTabGroup();
             this._broadcastLockState(null);
+        }
+    }
+
+    setControlTaskTitle(title) {
+        const normalized = String(title || '').trim();
+        this.controlTaskTitle = normalized ? normalized.slice(0, 32) : 'Browser control';
+        if (this.lockedTabId) {
+            this._broadcastCurrentLockState();
         }
     }
 
@@ -61,21 +81,108 @@ export class BrowserControlManager {
     }
 
     _broadcastLockState(tab) {
+        const summary = toControlTabSummary(tab);
+        const attached =
+            summary && this.connection.attached && this.connection.currentTabId === summary.id;
         chrome.runtime
             .sendMessage({
                 action: 'TAB_LOCKED',
                 tabId: this.ownerSidePanelTabId,
-                tab: tab
-                    ? {
-                          id: tab.id,
-                          title: tab.title,
-                          favIconUrl: tab.favIconUrl,
-                          url: tab.url,
-                          active: tab.active,
-                      }
-                    : null,
+                tab: summary,
+                attached: attached === true,
             })
             .catch(() => {});
+    }
+
+    _broadcastCurrentLockState() {
+        if (!this.lockedTabId) {
+            this._broadcastLockState(null);
+            return;
+        }
+
+        chrome.tabs
+            .get(this.lockedTabId)
+            .then((tab) => {
+                this._applyNativeTabGroup(tab);
+                this._broadcastLockState(tab);
+            })
+            .catch(() => this._broadcastLockState(null));
+    }
+
+    async _applyNativeTabGroup(tab) {
+        if (!tab?.id || !chrome.tabs?.group || !chrome.tabGroups?.update) return;
+
+        this.controlGroupTabId = tab.id;
+        try {
+            const existingGroupId = this.getControlledGroupId();
+            const groupRequest =
+                existingGroupId === null
+                    ? { tabIds: [tab.id] }
+                    : { groupId: existingGroupId, tabIds: [tab.id] };
+            const groupId = await chrome.tabs.group(groupRequest);
+            await chrome.tabGroups.update(groupId, {
+                title: this.controlTaskTitle,
+                color: 'green',
+                collapsed: false,
+            });
+            this.controlGroupId = groupId;
+        } catch (error) {
+            if (this.controlGroupTabId === tab.id) {
+                this.controlGroupTabId = null;
+                this.controlGroupId = null;
+            }
+            console.debug('[ControlManager] Could not apply tab group indicator:', error);
+        }
+    }
+
+    async _clearNativeTabGroup(tabId = this.controlGroupTabId) {
+        if (!tabId || !chrome.tabs?.ungroup) return;
+
+        try {
+            let tabIds = [tabId];
+            const groupId = this.getControlledGroupId();
+            if (groupId !== null && chrome.tabs?.query) {
+                const tabs = await chrome.tabs.query({ currentWindow: true, groupId });
+                tabIds = tabs.map((tab) => tab.id).filter((id) => Number.isInteger(id) && id > 0);
+                if (tabIds.length === 0) tabIds = [tabId];
+            }
+            await chrome.tabs.ungroup(tabIds.length === 1 ? tabIds[0] : tabIds);
+        } catch (error) {
+            console.debug('[ControlManager] Could not clear tab group indicator:', error);
+        } finally {
+            this.controlGroupTabId = null;
+            this.controlGroupId = null;
+        }
+    }
+
+    getControlledGroupId() {
+        return Number.isInteger(this.controlGroupId) && this.controlGroupId >= 0
+            ? this.controlGroupId
+            : null;
+    }
+
+    async isTabInControlledGroup(tabId) {
+        const groupId = this.getControlledGroupId();
+        if (groupId === null) return true;
+        if (!Number.isInteger(tabId) || tabId <= 0) return false;
+
+        try {
+            const tabs = await chrome.tabs.query({ currentWindow: true, groupId });
+            return tabs.some((tab) => tab.id === tabId);
+        } catch {
+            return false;
+        }
+    }
+
+    async isTabControllable(tabId) {
+        if (!Number.isInteger(tabId) || tabId <= 0) return false;
+
+        try {
+            const tab = await chrome.tabs.get(tabId);
+            return getTabControlAvailability(tab).controllable;
+        } catch {
+            return false;
+        }
     }
 
     getTargetTabId() {
@@ -99,7 +206,9 @@ export class BrowserControlManager {
         }
 
         // Force attachment which shows the "Started debugging" bar
-        return await this.ensureConnection();
+        const enabled = await this.ensureConnection();
+        this._broadcastCurrentLockState();
+        return enabled;
     }
 
     async disableControl() {
@@ -142,34 +251,19 @@ export class BrowserControlManager {
             return false;
         }
 
-        // Robust check for restricted URLs to avoid "Debugger attach failed" warnings
-        // Check both url and pendingUrl (for mid-navigation states)
-        const urlRaw = tabObj.url || tabObj.pendingUrl || '';
-
-        // If no URL is returned (e.g. system page without permissions), skip
-        if (!urlRaw) return false;
-
-        const url = urlRaw.toLowerCase();
-        const isRestricted =
-            url.startsWith('chrome://') ||
-            url.startsWith('edge://') ||
-            url.startsWith('about:') ||
-            url.startsWith('chrome-extension://') ||
-            url.startsWith('https://chromewebstore.google.com') ||
-            url.startsWith('https://chrome.google.com/webstore') ||
-            url.startsWith('view-source:');
-
-        if (isRestricted) {
+        const availability = getTabControlAvailability(tabObj);
+        if (!availability.controllable) {
             // Fail silently for restricted pages to avoid log noise
             return false;
         }
 
         await this.connection.attach(tabId);
+        this._broadcastCurrentLockState();
         return true;
     }
 
     async getSnapshot() {
-        if (!this.connection.attached) {
+        if (!this.connection.attached || this.connection.currentTabId !== this.lockedTabId) {
             const success = await this.ensureConnection();
             // Check connection.attached explicitly.
             if (!success || !this.connection.attached) return null;
@@ -200,7 +294,14 @@ export class BrowserControlManager {
             if (result && typeof result === 'object') {
                 // 1. Process State Updates
                 if (result._meta && result._meta.switchTabId) {
-                    this.setTargetTab(result._meta.switchTabId);
+                    const nextTabId = result._meta.switchTabId;
+                    if (
+                        !result._meta.allowOutsideControlledGroup &&
+                        !(await this.isTabInControlledGroup(nextTabId))
+                    ) {
+                        return 'Error: Target tab is outside the controlled tab group.';
+                    }
+                    this.setTargetTab(nextTabId);
                 }
 
                 // 2. Unwrap Output

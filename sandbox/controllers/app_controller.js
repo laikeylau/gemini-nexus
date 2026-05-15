@@ -39,6 +39,13 @@ export class AppController {
         document.addEventListener('gemini-provider-changed', () => {
             if (!this.isGenerating) this.rerender();
         });
+
+        if (this.ui.setBrowserControlCallbacks) {
+            this.ui.setBrowserControlCallbacks({
+                onChoose: () => this.handleTabSwitcher(),
+                onStop: () => this.toggleBrowserControl(false),
+            });
+        }
     }
 
     setCaptureMode(mode) {
@@ -320,7 +327,12 @@ export class AppController {
             }
             // Tab Locked Notification (Auto-lock update)
             if (payload.action === 'TAB_LOCKED') {
-                if (this.ui && this.ui.tabSelector) {
+                if (this.ui && this.ui.updateBrowserControlState) {
+                    this.ui.updateBrowserControlState({
+                        tab: payload.tab || null,
+                        attached: payload.attached === true,
+                    });
+                } else if (this.ui && this.ui.tabSelector) {
                     this.ui.tabSelector.updateTrigger(payload.tab);
                 }
                 return;

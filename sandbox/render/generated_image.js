@@ -1,11 +1,12 @@
 // sandbox/render/generated_image.js
 import { sendToBackground } from '../../shared/messaging/index.js';
 import { getHighResImageUrl } from '../../shared/utils/index.js';
+import { t } from '../core/i18n.js';
 
 export function createGeneratedImage(imgData) {
     const img = document.createElement('img');
     img.className = 'generated-image loading';
-    img.alt = imgData.alt || 'Generated Image';
+    img.alt = imgData.alt || t('generatedImage');
 
     // Loading Placeholder (Transparent 1x1 SVG)
     img.src =

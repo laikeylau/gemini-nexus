@@ -7,7 +7,7 @@ export const AppearanceSettingsTemplate = `
             <label class="setting-field">
                 <span data-i18n="theme">Theme</span>
                 <select id="theme-select" class="shortcut-input">
-                    <option value="system" data-i18n="system">System Default</option>
+                    <option value="system" data-i18n="systemDefault">System Default</option>
                     <option value="light" data-i18n="light">Light</option>
                     <option value="dark" data-i18n="dark">Dark</option>
                 </select>
@@ -16,7 +16,7 @@ export const AppearanceSettingsTemplate = `
             <label class="setting-field">
                 <span data-i18n="language">Language</span>
                 <select id="language-select" class="shortcut-input">
-                    <option value="system" data-i18n="system">System Default</option>
+                    <option value="system" data-i18n="systemDefault">System Default</option>
                     <option value="en">English</option>
                     <option value="zh">中文</option>
                 </select>

@@ -129,4 +129,57 @@ describe('extractOfficialResponseData', () => {
             ],
         });
     });
+
+    it('maps the Gemini Pro UI alias to the current official Gemini 3.1 Pro model id', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            body: makeSseStream('done'),
+        });
+
+        await sendOfficialMessage(
+            'Hello',
+            '',
+            [],
+            {
+                baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+                apiKey: 'key',
+                model: 'gemini-3-pro',
+            },
+            'low',
+            [],
+            false,
+            null,
+            vi.fn()
+        );
+
+        const [url] = global.fetch.mock.calls[0];
+        expect(url).toContain('/models/gemini-3.1-pro-preview:streamGenerateContent');
+    });
+
+    it('does not send unsupported minimal thinking level to Gemini Pro models', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            body: makeSseStream('done'),
+        });
+
+        await sendOfficialMessage(
+            'Hello',
+            '',
+            [],
+            {
+                baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+                apiKey: 'key',
+                model: 'gemini-3-pro',
+            },
+            'minimal',
+            [],
+            false,
+            null,
+            vi.fn()
+        );
+
+        const [, init] = global.fetch.mock.calls[0];
+        const payload = JSON.parse(init.body);
+        expect(payload.generationConfig.thinkingConfig.thinkingLevel).toBe('low');
+    });
 });

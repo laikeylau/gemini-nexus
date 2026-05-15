@@ -51,6 +51,7 @@ export class SidebarController {
 
         const willOpen = !this.sidebar.classList.contains('open');
         this.sidebar.classList.toggle('open', willOpen);
+        document.body.classList.toggle('sidebar-open', willOpen);
         if (this.overlay) {
             this.overlay.classList.toggle('visible', willOpen);
         }
@@ -68,6 +69,7 @@ export class SidebarController {
     close() {
         this._clearFocusTimer();
         if (this.sidebar) this.sidebar.classList.remove('open');
+        document.body.classList.remove('sidebar-open');
         if (this.overlay) this.overlay.classList.remove('visible');
     }
 

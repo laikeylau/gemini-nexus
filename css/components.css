@@ -376,6 +376,11 @@
     margin-bottom: 0;
 }
 
+.setting-inline-toggle {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
 .setting-panel-header h5 {
     margin: 0;
     font-size: 14px;
@@ -433,6 +438,19 @@
 
 .setting-panel-note {
     margin-top: 10px;
+}
+
+.mcp-summary-row > div:first-child {
+    min-width: 0;
+}
+
+.mcp-action-row {
+    flex-wrap: wrap;
+}
+
+[data-theme='dark'] .mcp-tool-list {
+    background: var(--bg-input);
+    border-color: var(--border-color);
 }
 
 .setting-radio-list {
@@ -495,6 +513,10 @@
 @media (max-width: 430px) {
     .setting-panel-row {
         align-items: flex-start;
+    }
+
+    .mcp-summary-row {
+        align-items: flex-start !important;
     }
 
     .settings-header {

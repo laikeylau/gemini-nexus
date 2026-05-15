@@ -1,5 +1,6 @@
 // sandbox/render/content.js
 import { transformMarkdown } from './pipeline.js';
+import { formatT, t } from '../core/i18n.js';
 
 const TOOL_OUTPUT_HEADER_PATTERN = /^\[Tool Output:\s*([^\]]+)\]\n?/;
 const TOOL_STEP_FOOTER_PATTERN = /\n\n\[Proceeding to step\s+(\d+)\]\s*$/;
@@ -53,7 +54,7 @@ function escapeFenceContent(text) {
 
 function sanitizeToolName(toolName) {
     const raw = typeof toolName === 'string' ? toolName.trim() : '';
-    if (!raw) return 'tool';
+    if (!raw) return t('toolFallbackName');
 
     const withoutRouting = raw.includes('__') ? raw.split('__').pop() : raw;
     const withoutPrefix = withoutRouting.replace(/^mcp[_-]+/i, '');
@@ -63,7 +64,7 @@ function sanitizeToolName(toolName) {
         .replace(/\s+/g, ' ')
         .trim();
 
-    return words || 'tool';
+    return words || t('toolFallbackName');
 }
 
 function normalizeToolStatus(status) {
@@ -75,17 +76,19 @@ function normalizeToolStatus(status) {
 }
 
 function getToolStatusCopy(status, displayName, hasOutput) {
-    if (status === 'running') return `Using ${displayName}...`;
-    if (status === 'failed') return `Failed ${displayName}`;
-    if (status === 'cancelled') return `Cancelled ${displayName}`;
-    return hasOutput ? `Used ${displayName}` : `Used ${displayName}`;
+    if (status === 'running') return formatT('toolStatusRunning', { name: displayName });
+    if (status === 'failed') return formatT('toolStatusFailed', { name: displayName });
+    if (status === 'cancelled') return formatT('toolStatusCancelled', { name: displayName });
+    return hasOutput
+        ? formatT('toolStatusUsed', { name: displayName })
+        : formatT('toolStatusUsed', { name: displayName });
 }
 
 function getToolBadgeText(status) {
-    if (status === 'running') return 'Running';
-    if (status === 'failed') return 'Failed';
-    if (status === 'cancelled') return 'Cancelled';
-    return 'Done';
+    if (status === 'running') return t('toolBadgeRunning');
+    if (status === 'failed') return t('toolBadgeFailed');
+    if (status === 'cancelled') return t('toolBadgeCancelled');
+    return t('toolBadgeDone');
 }
 
 function parseToolOutputText(text) {
@@ -277,10 +280,10 @@ function createToolDisclosure(contentDiv, text, options = {}) {
     if (rawToolName) {
         const meta = document.createElement('div');
         meta.className = 'tool-disclosure-meta';
-        const metaParts = [`Raw tool: ${rawToolName}`];
-        if (step) metaParts.push(`Step ${step}`);
+        const metaParts = [`${t('rawTool')}: ${rawToolName}`];
+        if (step) metaParts.push(formatT('stepLabel', { step }));
         if (Number.isFinite(callIndex) && Number.isFinite(callCount) && callCount > 1) {
-            metaParts.push(`Call ${callIndex}/${callCount}`);
+            metaParts.push(formatT('callLabel', { index: callIndex, count: callCount }));
         }
         meta.textContent = metaParts.join(' · ');
         body.appendChild(meta);
@@ -309,7 +312,9 @@ function createToolDisclosure(contentDiv, text, options = {}) {
         toggle.setAttribute('aria-expanded', nextExpanded ? 'true' : 'false');
         toggle.setAttribute(
             'aria-label',
-            nextExpanded ? `Collapse ${displayName}` : `Expand ${displayName}`
+            nextExpanded
+                ? formatT('collapseTool', { name: displayName })
+                : formatT('expandTool', { name: displayName })
         );
         body.hidden = !nextExpanded;
     };

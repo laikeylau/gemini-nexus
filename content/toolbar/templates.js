@@ -1,14 +1,15 @@
 // content/toolbar/templates.js
 (function () {
     const ICONS = window.GeminiToolbarIcons || {};
-    const t = window.GeminiToolbarStrings || {};
     // Combine modular styles (loaded previously)
     const STYLES = window.GeminiToolbarStyles || '';
     const WEB_MODEL_OPTIONS =
         window.GeminiWebModels?.createOptionMarkup?.() ||
         '<option value="gemini-3-flash">Fast</option><option value="gemini-3-flash-thinking">Thinking</option><option value="gemini-3-pro">3.1 Pro</option>';
 
-    const toolbarHTML = `
+    function buildMainStructure() {
+        const t = window.GeminiToolbarStrings || {};
+        const toolbarHTML = `
         <!-- Quick Actions Toolbar (Dark Theme) -->
         <div class="toolbar" id="toolbar">
             <div class="toolbar-drag-handle" id="toolbar-drag">${ICONS.DRAG}</div>
@@ -21,7 +22,7 @@
         </div>
     `;
 
-    const imageMenuHTML = `
+        const imageMenuHTML = `
         <!-- Image Button / AI Tools Menu -->
         <div class="image-btn" id="image-btn">
             <div class="ai-tool-trigger" title="${t.aiTools}">
@@ -54,7 +55,7 @@
         </div>
     `;
 
-    const windowHTML = `
+        const windowHTML = `
         <!-- Main Ask Window (Light Theme, Resizable) -->
         <div class="ask-window" id="ask-window">
             <div class="ask-header" id="ask-header">
@@ -114,12 +115,18 @@
         </div>
     `;
 
-    window.GeminiToolbarTemplates = {
-        mainStructure: `
+        return `
             <style>${STYLES}</style>
             ${toolbarHTML}
             ${imageMenuHTML}
             ${windowHTML}
-        `,
+        `;
+    }
+
+    window.GeminiToolbarTemplates = {
+        buildMainStructure,
+        get mainStructure() {
+            return buildMainStructure();
+        },
     };
 })();

@@ -6,7 +6,7 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    padding: 16px 20px;
+    padding: 16px 52px 16px 20px;
     z-index: 10;
     pointer-events: none; /* Let clicks pass through empty space */
 }
@@ -18,6 +18,218 @@ body.layout-wide .header {
 
 body.layout-wide #history-toggle {
     display: none;
+}
+
+.browser-control-bar {
+    position: absolute;
+    top: 58px;
+    left: 20px;
+    right: 52px;
+    z-index: 9;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 8px;
+    max-width: 800px;
+    padding: 6px;
+    margin: 0 auto;
+    background: var(--icon-btn-bg);
+    border: 1px solid rgba(11, 87, 208, 0.34);
+    border-radius: 18px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(14px);
+    pointer-events: auto;
+}
+
+.browser-control-bar[hidden] {
+    display: none;
+}
+
+body.layout-wide .browser-control-bar {
+    left: 300px;
+}
+
+.browser-control-target {
+    min-width: 0;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 13px;
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.browser-control-target:hover {
+    background: var(--btn-hover);
+}
+
+.browser-control-icon-wrap {
+    width: 24px;
+    height: 24px;
+    flex: 0 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+}
+
+#browser-control-favicon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    object-fit: contain;
+}
+
+.browser-control-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.browser-control-title,
+.browser-control-meta {
+    display: block;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.browser-control-title {
+    font-size: 13px;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
+.browser-control-meta {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.browser-control-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 9px;
+    border-radius: 999px;
+    background: rgba(11, 87, 208, 0.1);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.browser-control-status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.browser-control-bar.is-attached {
+    border-color: rgba(5, 150, 105, 0.5);
+}
+
+.browser-control-bar.is-attached .browser-control-status {
+    color: #047857;
+    background: rgba(5, 150, 105, 0.12);
+}
+
+.browser-control-bar.is-unavailable {
+    border-color: rgba(217, 119, 6, 0.42);
+}
+
+.browser-control-bar.is-unavailable .browser-control-status {
+    color: #b45309;
+    background: rgba(217, 119, 6, 0.12);
+}
+
+.browser-control-stop {
+    width: 28px;
+    height: 28px;
+    font-size: 13px;
+    box-shadow: none;
+}
+
+.browser-tab-item {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    gap: 10px;
+}
+
+.browser-tab-item.disabled {
+    cursor: not-allowed;
+    opacity: 0.56;
+}
+
+.browser-tab-item.disabled:hover {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.browser-tab-copy {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.browser-tab-meta {
+    color: var(--text-tertiary);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tab-lock-only-btn {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+}
+
+.tab-lock-only-btn:hover {
+    background: var(--btn-hover);
+    color: var(--text-primary);
+}
+
+.tab-lock-only-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+@media (max-width: 600px) {
+    .browser-control-bar {
+        left: 12px;
+        right: 12px;
+        top: 56px;
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .browser-control-status {
+        display: none;
+    }
 }
 
 .header-left,

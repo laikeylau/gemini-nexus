@@ -1,0 +1,40 @@
+// @vitest-environment jsdom
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { describe, expect, it } from 'vitest';
+import { formatT, setLanguagePreference, t } from './i18n.js';
+
+function getLocaleBlock(locale) {
+    const source = fs.readFileSync(path.resolve(process.cwd(), 'sandbox/core/i18n.js'), 'utf8');
+    const match = source.match(new RegExp(`\\n    ${locale}: \\{([\\s\\S]*?)\\n    \\}`, 'm'));
+    return match ? match[1] : '';
+}
+
+function getDeclaredKeys(locale) {
+    return [...getLocaleBlock(locale).matchAll(/^\s*([A-Za-z0-9_]+):/gm)].map((match) => match[1]);
+}
+
+describe('i18n translations', () => {
+    it('keeps locale keys unique and separated by meaning', () => {
+        for (const locale of ['en', 'zh']) {
+            const keys = getDeclaredKeys(locale);
+            expect(keys).toHaveLength(new Set(keys).size);
+        }
+
+        setLanguagePreference('zh');
+        expect(t('systemSection')).toBe('系统');
+        expect(t('systemDefault')).toBe('跟随系统');
+    });
+
+    it('localizes dynamic UI copy used outside data-i18n templates', () => {
+        setLanguagePreference('zh');
+
+        expect(formatT('mcpSummarySelected', { mode: '已选择', count: 1, total: 2 })).toBe(
+            '模式：已选择。已暴露工具：1/2。'
+        );
+        expect(t('copyCode')).toBe('复制代码');
+        expect(t('screenCapture')).toBe('屏幕截图');
+        expect(t('toolStatusRunning').replace('{name}', 'browser')).toBe('正在使用 browser...');
+    });
+});

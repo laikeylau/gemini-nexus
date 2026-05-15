@@ -1,10 +1,26 @@
+import { readFile } from 'node:fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 
 // Define __dirname for ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+function copySidepanelPreload(): Plugin {
+    return {
+        name: 'copy-sidepanel-preload',
+        apply: 'build',
+        async generateBundle() {
+            const source = await readFile(path.resolve(__dirname, 'sidepanel/preload.js'), 'utf8');
+            this.emitFile({
+                type: 'asset',
+                fileName: 'sidepanel/preload.js',
+                source,
+            });
+        },
+    };
+}
 
 export default defineConfig(() => {
     return {
@@ -12,7 +28,7 @@ export default defineConfig(() => {
             port: 3000,
             host: '0.0.0.0',
         },
-        plugins: [],
+        plugins: [copySidepanelPreload()],
         resolve: {
             alias: {
                 '@': path.resolve(__dirname, '.'),

@@ -9,9 +9,9 @@
     const ActionsDelegate = window.GeminiToolbarUIActions;
     const CodeCopyHandler = window.GeminiCodeCopyHandler;
 
-    // Localization helper
-    const isZh = navigator.language.startsWith('zh');
-    const DEFAULT_TITLE = isZh ? '询问' : 'Ask';
+    function getStrings() {
+        return window.GeminiToolbarStrings || {};
+    }
 
     /**
      * Main UI Manager
@@ -92,6 +92,31 @@
             this.isBuilt = true;
         }
 
+        rebuildForLanguageChange() {
+            if (!this.isBuilt || !this.domBuilder || !this.domBuilder.rerender) return;
+            this.domBuilder.rerender();
+            this.view = new View(this.shadow);
+            this.grammarManager = new GrammarManager(this.view);
+            this.renderer = new Renderer(this.view, this.bridge);
+            this.actionsDelegate = new ActionsDelegate(this);
+            this.codeCopyHandler = new CodeCopyHandler();
+            this.dragController = new DragController(
+                this.view.elements.askWindow,
+                this.view.elements.askHeader,
+                {
+                    onSnap: (side, top) => this.view.dockWindow(side, top),
+                    onUndock: () => this.view.undockWindow(),
+                }
+            );
+            this.toolbarDragController = new DragController(
+                this.view.elements.toolbar,
+                this.view.elements.toolbarDrag,
+                {}
+            );
+            this.events = new Events(this);
+            this.events.bind(this.view.elements, this.view.elements.askWindow);
+        }
+
         // --- Delegate Accessors ---
 
         get actions() {
@@ -154,7 +179,12 @@
             this.view.hideImageButton();
         }
 
-        showAskWindow(rect, contextText, title = DEFAULT_TITLE, mousePoint = null) {
+        showAskWindow(
+            rect,
+            contextText,
+            title = getStrings().ask || 'Ask Gemini',
+            mousePoint = null
+        ) {
             return this.view.showAskWindow(
                 rect,
                 contextText,
@@ -251,7 +281,12 @@
                     .map((m) => m.trim())
                     .filter((m) => m);
                 if (models.length === 0) {
-                    opts = [{ val: 'openai_custom', txt: 'Custom Model' }];
+                    opts = [
+                        {
+                            val: 'openai_custom',
+                            txt: getStrings().customModel || 'Custom Model',
+                        },
+                    ];
                 } else {
                     opts = models.map((m) => ({ val: m, txt: m }));
                 }

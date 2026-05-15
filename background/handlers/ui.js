@@ -1,6 +1,7 @@
 // background/handlers/ui.js
 import { getActiveTabContent } from './session/utils.js';
 import { getPanelPathForTab } from '../managers/sidepanel_scope_manager.js';
+import { toControlTabSummary } from '../control/tabs.js';
 
 export class UIMessageHandler {
     constructor(imageHandler, controlManager, mcpManager, sidePanelScopeManager) {
@@ -271,14 +272,13 @@ export class UIMessageHandler {
 
         if (request.action === 'GET_OPEN_TABS') {
             (async () => {
-                const tabs = await chrome.tabs.query({ currentWindow: true });
-                const safeTabs = tabs.map((t) => ({
-                    id: t.id,
-                    title: t.title,
-                    url: t.url,
-                    favIconUrl: t.favIconUrl,
-                    active: t.active,
-                }));
+                const tabQuery = { currentWindow: true };
+                const groupId = this.controlManager?.getControlledGroupId?.();
+                if (Number.isInteger(groupId) && groupId >= 0) {
+                    tabQuery.groupId = groupId;
+                }
+                const tabs = await chrome.tabs.query(tabQuery);
+                const safeTabs = tabs.map((tab) => toControlTabSummary(tab));
 
                 // Get the currently locked tab ID to inform UI state
                 const lockedTabId = this.controlManager
@@ -299,23 +299,39 @@ export class UIMessageHandler {
         }
 
         if (request.action === 'SWITCH_TAB') {
-            // tabId can be null to unlock
-            if (this.controlManager) {
-                this.controlManager.setTargetTab(request.tabId || null);
-            }
-            // Only switch visual tab if a specific ID is provided AND switchVisual is not explicitly false
-            if (request.tabId && request.switchVisual !== false) {
-                chrome.tabs
-                    .update(request.tabId, { active: true })
-                    .catch((err) => console.warn(err));
-            }
-            sendResponse({ status: 'switched' });
+            (async () => {
+                const tabId = request.tabId || null;
+                if (
+                    tabId &&
+                    this.controlManager?.isTabControllable &&
+                    !(await this.controlManager.isTabControllable(tabId))
+                ) {
+                    sendResponse({ status: 'error', error: 'Tab cannot be controlled.' });
+                    return;
+                }
+
+                // tabId can be null to unlock
+                if (this.controlManager) {
+                    this.controlManager.setOwnerSidePanelTabId?.(
+                        this._getTargetSidePanelTabId(request, sender)
+                    );
+                    this.controlManager.setTargetTab(tabId);
+                }
+                // Only switch visual tab if a specific ID is provided AND switchVisual is not explicitly false
+                if (tabId && request.switchVisual !== false) {
+                    chrome.tabs.update(tabId, { active: true }).catch((err) => console.warn(err));
+                }
+                sendResponse({ status: 'switched' });
+            })();
             return true;
         }
 
         // --- BROWSER CONTROL TOGGLE ---
         if (request.action === 'TOGGLE_BROWSER_CONTROL') {
             if (this.controlManager) {
+                this.controlManager.setOwnerSidePanelTabId?.(
+                    this._getTargetSidePanelTabId(request, sender)
+                );
                 if (request.enabled) {
                     this.controlManager.enableControl();
                 } else {

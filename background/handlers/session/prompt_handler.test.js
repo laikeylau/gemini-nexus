@@ -113,4 +113,60 @@ describe('PromptHandler concurrency', () => {
         expect(firstResponse).toHaveBeenCalledWith({ status: 'completed' });
         expect(secondResponse).toHaveBeenCalledWith({ status: 'completed' });
     });
+
+    it('uses the user browser-control prompt as the native tab group title', async () => {
+        globalThis.chrome = {
+            runtime: {
+                sendMessage: vi.fn(() => Promise.resolve()),
+            },
+            tabs: {
+                query: vi.fn(() =>
+                    Promise.resolve([
+                        {
+                            id: 88,
+                            title: 'OpenAI News | OpenAI',
+                            url: 'https://openai.com/news/',
+                            active: true,
+                        },
+                    ])
+                ),
+            },
+        };
+        const sessionManager = {
+            handleSendPrompt: vi.fn(() =>
+                Promise.resolve({
+                    action: 'GEMINI_REPLY',
+                    sessionId: 'session-1',
+                    status: 'success',
+                    text: 'done',
+                })
+            ),
+        };
+        const controlManager = {
+            setOwnerSidePanelTabId: vi.fn(),
+            setControlTaskTitle: vi.fn(),
+            getTargetTabId: vi.fn(() => null),
+            setTargetTab: vi.fn(),
+            getSnapshot: vi.fn(() => Promise.resolve('snapshot')),
+        };
+        const handler = new PromptHandler(sessionManager, controlManager, null);
+        const sendResponse = vi.fn();
+
+        handler.handle(
+            {
+                action: 'SEND_PROMPT',
+                text: 'Scroll OpenAI news',
+                model: 'gemini-test',
+                sessionId: 'session-1',
+                enableBrowserControl: true,
+                sidePanelTabId: 123,
+            },
+            sendResponse
+        );
+
+        await vi.waitFor(() =>
+            expect(controlManager.setControlTaskTitle).toHaveBeenCalledWith('Scroll OpenAI news')
+        );
+        expect(controlManager.setTargetTab).toHaveBeenCalledWith(88);
+    });
 });

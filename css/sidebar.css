@@ -263,7 +263,15 @@ body.layout-wide .sidebar-overlay {
 /* Mobile Responsiveness */
 @media (max-width: 600px) {
     .sidebar {
-        width: 85%;
-        max-width: 320px;
+        width: calc(100% - 40px);
+        max-width: 360px;
+    }
+
+    body.sidebar-open .header,
+    body.sidebar-open .footer,
+    body.sidebar-open .corner-btn {
+        opacity: 0.18;
+        filter: blur(1px);
+        pointer-events: none;
     }
 }

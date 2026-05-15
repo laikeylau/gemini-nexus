@@ -17,7 +17,7 @@ import {
     requestConnectionSettingsFromStorage,
     sendToBackground,
 } from '../../shared/messaging/index.js';
-import { setLanguagePreference, getLanguagePreference } from '../core/i18n.js';
+import { formatT, setLanguagePreference, getLanguagePreference, t } from '../core/i18n.js';
 import { SettingsView } from './settings/view.js';
 import {
     DEFAULT_CONTEXT_MODE,
@@ -231,7 +231,7 @@ export class SettingsController {
 
     saveLogFile(logs) {
         if (!logs || logs.length === 0) {
-            alert('No logs to download.');
+            alert(t('noLogsToDownload'));
             return;
         }
 
@@ -342,12 +342,12 @@ export class SettingsController {
 
         if (result && result.ok === true) {
             const count = typeof result.toolsCount === 'number' ? result.toolsCount : 0;
-            this.view.connection.setMcpTestStatus(`Connected. Tools: ${count}`, false);
+            this.view.connection.setMcpTestStatus(formatT('mcpConnectedTools', { count }), false);
             return;
         }
 
-        const err = result && result.error ? result.error : 'Connection failed';
-        this.view.connection.setMcpTestStatus(`Failed: ${err}`, true);
+        const err = result && result.error ? result.error : t('mcpConnectionFailed');
+        this.view.connection.setMcpTestStatus(formatT('mcpFailed', { error: err }), true);
     }
 
     updateMcpToolsResult(result) {
@@ -359,8 +359,8 @@ export class SettingsController {
             return;
 
         if (!result || result.ok !== true) {
-            const err = result && result.error ? result.error : 'Failed to fetch tools';
-            this.view.connection.setMcpTestStatus(`Failed: ${err}`, true);
+            const err = result && result.error ? result.error : t('mcpFetchToolsFailed');
+            this.view.connection.setMcpTestStatus(formatT('mcpFailed', { error: err }), true);
             return;
         }
 
