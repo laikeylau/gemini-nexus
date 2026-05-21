@@ -1,41 +1,45 @@
+const HelpButtons = {
+    shortcutDesc:
+        '<button type="button" class="setting-help" data-i18n-title="shortcutDesc" title="Click input and press keys to change." aria-label="Help">?</button>',
+};
+
+const HelpButton = (key) => HelpButtons[key] || '';
+
 export const ShortcutsSettingsTemplate = `
-<div class="setting-group">
-    <h4 data-i18n="keyboardShortcuts">Keyboard Shortcuts</h4>
+	<div class="setting-group">
+	    <h4><span data-i18n="keyboardShortcuts">Keyboard Shortcuts</span>${HelpButton('shortcutDesc')}</h4>
 
     <div class="setting-panel">
-        <div class="setting-panel-header">
-            <h5>
-                <span data-i18n="keyboardShortcuts">Keyboard Shortcuts</span>
-                <button type="button" class="setting-help" aria-label="Help" data-i18n-title="shortcutDesc" title="Click input and press keys to change.">?</button>
-            </h5>
-        </div>
-
         <div class="setting-shortcut-list">
-            <label class="setting-panel-row setting-shortcut-row">
-                <span class="setting-shortcut-title" data-i18n="quickAsk">Quick Ask (Floating)</span>
+            <div class="setting-shortcut-row">
+                <span class="setting-shortcut-title" data-i18n="quickAsk">Quick Ask</span>
                 <input type="text" id="shortcut-quick-ask" class="shortcut-input" readonly value="Ctrl+G">
-            </label>
+            </div>
 
-            <label class="setting-panel-row setting-shortcut-row">
-                <span class="setting-shortcut-title" data-i18n="openSidePanel">Open Side Panel</span>
+            <div class="setting-shortcut-row">
+                <span class="setting-shortcut-title" data-i18n="openSidePanel">Side Panel</span>
                 <input type="text" id="shortcut-open-panel" class="shortcut-input" readonly value="Alt+S">
-            </label>
+            </div>
 
-            <label class="setting-panel-row setting-shortcut-row">
-                <span class="setting-shortcut-title" data-i18n="shortcutBrowserControl">Open Browser Control</span>
+            <div class="setting-shortcut-row">
+                <span class="setting-shortcut-title" data-i18n="shortcutBrowserControl">Browser Control</span>
                 <input type="text" id="shortcut-browser-control" class="shortcut-input" readonly value="Ctrl+B">
-            </label>
+            </div>
 
-            <label class="setting-panel-row setting-shortcut-row setting-shortcut-static-row">
+            <div class="setting-shortcut-row">
+                <span class="setting-shortcut-title" data-i18n="shortcutOcrCapture">Area OCR</span>
+                <input type="text" id="shortcut-ocr-capture" class="shortcut-input" readonly value="Alt+O">
+            </div>
+
+            <div class="setting-shortcut-row setting-shortcut-static-row">
                 <span class="setting-shortcut-title" data-i18n="shortcutFocusInput">Focus Input</span>
                 <input type="text" class="shortcut-input" readonly value="Ctrl+P">
-            </label>
+            </div>
 
-            <label class="setting-panel-row setting-shortcut-row setting-shortcut-static-row">
+            <div class="setting-shortcut-row setting-shortcut-static-row">
                 <span class="setting-shortcut-title" data-i18n="shortcutSwitchModel">Switch Model</span>
                 <input type="text" class="shortcut-input" readonly value="Tab">
-            </label>
+            </div>
         </div>
     </div>
-
 </div>`;

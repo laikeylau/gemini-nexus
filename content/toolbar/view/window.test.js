@@ -14,6 +14,11 @@ function createElements() {
         windowFooter: document.createElement('div'),
         footerStop: document.createElement('div'),
         footerActions: document.createElement('div'),
+        translationTargets: document.createElement('div'),
+        translationTargetTrigger: document.createElement('button'),
+        translationTargetMenu: document.createElement('div'),
+        translationTargetSummary: document.createElement('span'),
+        translationTargetOptions: document.createElement('div'),
         buttons: {
             copy: document.createElement('button'),
         },
@@ -22,18 +27,19 @@ function createElements() {
 
 describe('WindowView', () => {
     beforeAll(async () => {
-        window.GeminiViewUtils = {
+        window.GeminiViewLayout = {
             positionElement: vi.fn(),
         };
         window.GeminiToolbarIcons = { COPY: 'copy' };
         await import('./image_preview.js');
+        await import('./translation_targets.js');
         await import('./window.js');
     });
 
     beforeEach(() => {
         vi.restoreAllMocks();
         delete globalThis.chrome;
-        window.GeminiViewUtils.positionElement.mockClear();
+        window.GeminiViewLayout.positionElement.mockClear();
     });
 
     it('renders arbitrary error HTML as text', () => {
@@ -69,6 +75,8 @@ describe('WindowView', () => {
 
         expect(elements.resultText.querySelector('img')).toBeNull();
         expect(elements.resultText.textContent).toContain('<img src=x onerror="alert(1)">Loading');
+        expect(elements.resultText.querySelector('.gemini-loading-message')).not.toBeNull();
+        expect(elements.resultText.querySelector('[style]')).toBeNull();
     });
 
     it('allows only Gemini login links in rich error text', () => {
@@ -106,7 +114,7 @@ describe('WindowView', () => {
 
         expect(elements.askWindow.style.width).toBe('640px');
         expect(elements.askWindow.style.height).toBe('520px');
-        expect(window.GeminiViewUtils.positionElement).toHaveBeenCalled();
+        expect(window.GeminiViewLayout.positionElement).toHaveBeenCalled();
         expect(elements.askWindow.classList.contains('visible')).toBe(true);
     });
 
@@ -119,6 +127,26 @@ describe('WindowView', () => {
         ).resolves.toBeUndefined();
 
         expect(elements.askWindow.classList.contains('visible')).toBe(true);
+    });
+
+    it('summarizes selected translation targets in the dropdown trigger', () => {
+        const elements = createElements();
+        elements.translationTargetMenu.classList.add('hidden');
+        elements.translationTargetOptions.innerHTML = `
+            <label><input type="checkbox" name="translation-target" value="auto"><span>Auto</span></label>
+            <label><input type="checkbox" name="translation-target" value="zh-Hans"><span>Chinese</span></label>
+            <label><input type="checkbox" name="translation-target" value="ja"><span>Japanese</span></label>
+        `;
+        const view = new window.GeminiViewWindow(elements);
+
+        view.setSelectedTranslationTargets(['zh-Hans', 'ja']);
+
+        expect(elements.translationTargetSummary.textContent).toBe('Chinese, Japanese');
+
+        view.toggleTranslationTargetDropdown();
+
+        expect(elements.translationTargetMenu.classList.contains('hidden')).toBe(false);
+        expect(elements.translationTargetTrigger.getAttribute('aria-expanded')).toBe('true');
     });
 
     it('opens generated result images in a zoomable preview', () => {

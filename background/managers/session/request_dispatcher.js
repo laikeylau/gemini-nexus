@@ -6,8 +6,9 @@ import {
     DEFAULT_CONTEXT_RECENT_TURNS,
 } from '../../../shared/config/constants.js';
 import {
-    countUserAttachmentsByType,
+    describeMessageAttachmentMarkers,
     getAttachmentDataUrls,
+    normalizeMessageImages,
 } from '../../../shared/attachments/index.js';
 import { getHistory } from './history_store.js';
 import { prepareManagedContext } from './context_manager.js';
@@ -22,11 +23,6 @@ function getRequestHistory(request) {
 function getFileImages(files) {
     if (!Array.isArray(files)) return [];
     return getAttachmentDataUrls(files);
-}
-
-function normalizeMessageImages(image) {
-    if (!image) return [];
-    return Array.isArray(image) ? image.filter(Boolean) : [image];
 }
 
 function getMessageAttachmentDataUrls(message) {
@@ -159,26 +155,7 @@ function compactWebHistoryText(text) {
 }
 
 function describeWebHistoryAttachments(message) {
-    const markers = [];
-    const userAttachmentCounts = countUserAttachmentsByType(message?.attachments);
-    const legacyImages =
-        userAttachmentCounts.images === 0 && userAttachmentCounts.files === 0
-            ? normalizeMessageImages(message?.image).length
-            : 0;
-    const imageCount = userAttachmentCounts.images + legacyImages;
-    if (imageCount > 0) {
-        markers.push(`[${imageCount} image attachment(s)]`);
-    }
-    if (userAttachmentCounts.files > 0) {
-        markers.push(`[${userAttachmentCounts.files} file attachment(s)]`);
-    }
-    if (Array.isArray(message?.generatedImages) && message.generatedImages.length > 0) {
-        markers.push(`[${message.generatedImages.length} generated image(s)]`);
-    }
-    if (Array.isArray(message?.sources) && message.sources.length > 0) {
-        markers.push(`[${message.sources.length} source link(s)]`);
-    }
-    return markers.join(' ');
+    return describeMessageAttachmentMarkers(message).join(' ');
 }
 
 function formatWebHistoryMessage(message) {
@@ -394,12 +371,10 @@ export class RequestDispatcher {
                         `[Gemini Nexus] ${type} error (${error.message}), retrying... (Attempt ${attemptCount}/${maxAttempts})`
                     );
 
-                    if (isLoginError || isNetworkGlitch) {
-                        if (this.auth.accountIndices.length > 1) {
-                            await this.auth.rotateAccount();
-                        }
-                        this.auth.forceContextRefresh();
+                    if (this.auth.accountIndices.length > 1) {
+                        await this.auth.rotateAccount();
                     }
+                    this.auth.forceContextRefresh();
 
                     const baseDelay = Math.pow(2, attemptCount) * 1000;
                     const jitter = Math.random() * 1000;

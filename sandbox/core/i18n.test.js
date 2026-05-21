@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { formatT, setLanguagePreference, t } from './i18n.js';
+import { applyTranslations, formatT, setLanguagePreference, t } from './i18n.js';
 
 function getLocaleBlock(locale) {
     const source = fs.readFileSync(path.resolve(process.cwd(), 'sandbox/core/i18n.js'), 'utf8');
@@ -27,6 +27,10 @@ describe('i18n translations', () => {
         expect(t('systemDefault')).toBe('跟随系统');
     });
 
+    it('keeps locale key order aligned for easy review', () => {
+        expect(getDeclaredKeys('zh')).toEqual(getDeclaredKeys('en'));
+    });
+
     it('localizes dynamic UI copy used outside data-i18n templates', () => {
         setLanguagePreference('zh');
 
@@ -36,5 +40,21 @@ describe('i18n translations', () => {
         expect(t('copyCode')).toBe('复制代码');
         expect(t('screenCapture')).toBe('屏幕截图');
         expect(t('toolStatusRunning').replace('{name}', 'browser')).toBe('正在使用 browser...');
+    });
+
+    it('mirrors localized titles into aria labels for icon-only controls', () => {
+        setLanguagePreference('zh');
+        document.body.innerHTML = `
+            <button data-i18n-title="newChatTooltip" title="New Chat"></button>
+            <button data-i18n-title="close" title="Close" aria-label="Close"></button>
+        `;
+
+        applyTranslations();
+
+        const [newChat, close] = document.querySelectorAll('button');
+        expect(newChat.title).toBe('新对话');
+        expect(newChat.getAttribute('aria-label')).toBe('新对话');
+        expect(close.title).toBe('关闭');
+        expect(close.getAttribute('aria-label')).toBe('关闭');
     });
 });

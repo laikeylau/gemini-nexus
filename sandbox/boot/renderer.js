@@ -1,7 +1,7 @@
 import { loadLibs } from './loader.js';
 import { transformMarkdown } from '../render/pipeline.js';
 import { WatermarkRemover } from '../../shared/media/watermark_remover.js';
-import { getHighResImageUrl } from '../../shared/utils/index.js';
+import { createPrefixedId, getHighResImageUrl } from '../../shared/utils/index.js';
 import { t } from '../core/i18n.js';
 
 function escapeAttribute(value) {
@@ -18,8 +18,11 @@ export function initRendererMode() {
     loadLibs();
 
     window.addEventListener('message', async (event) => {
-        if (event.data.action === 'RENDER') {
-            const { text, reqId, images } = event.data;
+        const message = event.data || {};
+        if (!message || typeof message !== 'object') return;
+
+        if (message.action === 'RENDER') {
+            const { text, reqId, images } = message;
 
             try {
                 let html = transformMarkdown(text);
@@ -59,8 +62,7 @@ export function initRendererMode() {
                     );
 
                     displayImages.forEach((imageData) => {
-                        const imageRequestId =
-                            'gen_img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                        const imageRequestId = createPrefixedId('gen_img');
                         const targetUrl = getHighResImageUrl(imageData.url);
                         const alt = escapeAttribute(imageData.alt || t('generatedImage'));
 
@@ -85,8 +87,8 @@ export function initRendererMode() {
             }
         }
 
-        if (event.data.action === 'PROCESS_IMAGE') {
-            const { base64, reqId } = event.data;
+        if (message.action === 'PROCESS_IMAGE') {
+            const { base64, reqId } = message;
             try {
                 const result = await WatermarkRemover.process(base64);
                 event.source.postMessage(

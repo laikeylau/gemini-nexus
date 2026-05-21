@@ -39,7 +39,15 @@
         }
 
         bind(elements, askWindow) {
-            const { buttons, imageBtn, askInput, askModelSelect } = elements;
+            const {
+                buttons,
+                imageBtn,
+                askInput,
+                askProviderSelect,
+                askModelSelect,
+                translationTargets,
+                translationTargetTrigger,
+            } = elements;
 
             TOOLBAR_ACTIONS.forEach(([buttonName, actionName]) => {
                 this._bindTrigger(buttons[buttonName], 'mousedown', actionName);
@@ -74,8 +82,31 @@
 
             this._add(askModelSelect, 'change', (event) => {
                 this.controller.handleModelChange(event.target.value);
-                const Utils = window.GeminiViewUtils;
-                if (Utils && Utils.resizeSelect) Utils.resizeSelect(event.target);
+                const Layout = window.GeminiViewLayout;
+                if (Layout && Layout.resizeSelect) Layout.resizeSelect(event.target);
+            });
+
+            this._add(askProviderSelect, 'change', (event) => {
+                this.controller.handleProviderChange?.(event.target.value);
+                const Layout = window.GeminiViewLayout;
+                if (Layout && Layout.resizeSelect) Layout.resizeSelect(event.target);
+            });
+
+            this._add(translationTargets, 'change', (event) => {
+                if (event.target?.name !== 'translation-target') return;
+                const selected = [
+                    ...translationTargets.querySelectorAll('input[name="translation-target"]'),
+                ]
+                    .filter((input) => input.checked)
+                    .map((input) => input.value);
+                this.controller.handleTranslationTargetsChange(selected);
+                event.stopPropagation();
+            });
+
+            this._add(translationTargetTrigger, 'click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                this.controller.toggleTranslationTargetDropdown();
             });
 
             // Prevent event bubbling to page

@@ -6,7 +6,7 @@ export const SidebarTemplate = `
         <div class="sidebar-top">
             <div class="search-container">
                 ${TemplateIcons.SEARCH}
-                <input type="text" id="history-search" data-i18n-placeholder="searchPlaceholder" placeholder="Search for chats" autocomplete="off">
+                <input type="text" id="history-search" data-i18n-placeholder="searchPlaceholder" autocomplete="off">
             </div>
         </div>
 

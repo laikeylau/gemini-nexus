@@ -34,6 +34,7 @@ export default defineConfig(() => {
                 input: {
                     sidepanel: path.resolve(__dirname, 'sidepanel/index.html'),
                     sandbox: path.resolve(__dirname, 'sandbox/index.html'),
+                    settings: path.resolve(__dirname, 'settings/index.html'),
                 },
             },
         },

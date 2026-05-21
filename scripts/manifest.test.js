@@ -23,13 +23,34 @@ async function listJavaScriptFiles(directory) {
     return files.flat().sort();
 }
 
-const classicContentSupportFiles = ['shared/dom/crop_core.js', 'shared/ui/copy_feedback.js'];
+const classicContentSupportFiles = [
+    'shared/dom/crop_global.js',
+    'shared/ui/copy_feedback.js',
+    'shared/utils/id_global.js',
+];
 
 describe('manifest content scripts', () => {
     it('declares the native tab group permission used by browser control', async () => {
         const manifest = JSON.parse(await readFile('manifest.json', 'utf8'));
 
         expect(manifest.permissions).toContain('tabGroups');
+    });
+
+    it('uses explicit icon assets for each manifest icon size', async () => {
+        const manifest = JSON.parse(await readFile('manifest.json', 'utf8'));
+
+        expect(manifest.icons).toEqual({
+            16: 'assets/icons/icon-16.png',
+            32: 'assets/icons/icon-32.png',
+            48: 'assets/icons/icon-48.png',
+            128: 'assets/icons/icon-128.png',
+        });
+        expect(manifest.action.default_icon).toEqual({
+            16: 'assets/icons/icon-16.png',
+            32: 'assets/icons/icon-32.png',
+            48: 'assets/icons/icon-48.png',
+            128: 'assets/icons/icon-128.png',
+        });
     });
 
     it('does not request the downloads permission when downloads use DOM anchors', async () => {
@@ -43,6 +64,29 @@ describe('manifest content scripts', () => {
 
         expect(manifest.host_permissions).toContain('<all_urls>');
         expect(manifest.host_permissions).not.toContain('https://gemini.google.com/*');
+    });
+
+    it('does not inject content scripts into local MHTML archives', async () => {
+        const manifest = JSON.parse(await readFile('manifest.json', 'utf8'));
+
+        for (const entry of manifest.content_scripts) {
+            expect(entry.exclude_globs).toEqual(
+                expect.arrayContaining(['*.mhtml*', '*.mht*', '*.MHTML*', '*.MHT*'])
+            );
+        }
+    });
+
+    it('loads the page guard before any content script with side effects', async () => {
+        const manifest = JSON.parse(await readFile('manifest.json', 'utf8'));
+        const listedFiles = manifest.content_scripts.flatMap((entry) => entry.js ?? []);
+
+        expect(listedFiles[0]).toBe('content/page_guard.js');
+        expect(listedFiles.indexOf('content/page_guard.js')).toBeLessThan(
+            listedFiles.indexOf('content/shortcuts.js')
+        );
+        expect(listedFiles.indexOf('content/page_guard.js')).toBeLessThan(
+            listedFiles.indexOf('content/index.js')
+        );
     });
 
     it('lists every runtime content script file exactly once', async () => {
@@ -71,6 +115,41 @@ describe('manifest content scripts', () => {
         ]) {
             expect(modelOptionsIndex).toBeLessThan(listedFiles.indexOf(dependentFile));
         }
+    });
+
+    it('loads content toolbar layout helpers before toolbar view controllers', async () => {
+        const manifest = JSON.parse(await readFile('manifest.json', 'utf8'));
+        const listedFiles = manifest.content_scripts.flatMap((entry) => entry.js ?? []);
+        const layoutIndex = listedFiles.indexOf('content/toolbar/view/layout.js');
+
+        expect(layoutIndex).toBeGreaterThan(-1);
+        expect(listedFiles).not.toContain('content/toolbar/view/utils.js');
+        for (const dependentFile of [
+            'content/toolbar/view/widget.js',
+            'content/toolbar/view/window.js',
+            'content/toolbar/view/index.js',
+            'content/toolbar/events.js',
+        ]) {
+            expect(layoutIndex).toBeLessThan(listedFiles.indexOf(dependentFile));
+        }
+    });
+
+    it('loads content toolbar helper controllers before their consumers', async () => {
+        const manifest = JSON.parse(await readFile('manifest.json', 'utf8'));
+        const listedFiles = manifest.content_scripts.flatMap((entry) => entry.js ?? []);
+        const dragControllerIndex = listedFiles.indexOf('content/toolbar/drag_controller.js');
+        const inputManagerIndex = listedFiles.indexOf('content/toolbar/input_manager.js');
+
+        expect(dragControllerIndex).toBeGreaterThan(-1);
+        expect(inputManagerIndex).toBeGreaterThan(-1);
+        expect(listedFiles).not.toContain('content/toolbar/utils/drag.js');
+        expect(listedFiles).not.toContain('content/toolbar/utils/input.js');
+        expect(dragControllerIndex).toBeLessThan(
+            listedFiles.indexOf('content/toolbar/ui/manager.js')
+        );
+        expect(inputManagerIndex).toBeLessThan(
+            listedFiles.indexOf('content/toolbar/controller.js')
+        );
     });
 
     it('only exposes web accessible resources that exist in the source tree', async () => {

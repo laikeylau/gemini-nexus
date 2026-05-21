@@ -18,3 +18,15 @@ describe('UIController tab switcher visibility', () => {
         expect(tabSwitcherBtn.style.display).toBe('');
     });
 });
+
+describe('UIController host context', () => {
+    it('marks tab-hosted sidepanel pages so tab-only controls can be hidden', () => {
+        const controller = Object.create(UIController.prototype);
+
+        controller.setHostContext({ isTab: true });
+        expect(document.body.classList.contains('host-tab')).toBe(true);
+
+        controller.setHostContext({ isTab: false });
+        expect(document.body.classList.contains('host-tab')).toBe(false);
+    });
+});

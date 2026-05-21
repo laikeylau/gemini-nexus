@@ -1,5 +1,6 @@
 import { sendToBackground } from '../../shared/messaging/index.js';
 import { t } from '../core/i18n.js';
+import { resizeSelectToSelectedOption } from '../ui/model_select_width.js';
 
 export function getToolsPageScrollDistance(toolsRow) {
     return Math.max(160, toolsRow.clientWidth - 24);
@@ -22,6 +23,13 @@ export function bindAppEvents(app, ui, setResizeRef) {
     if (openFullPageBtn) {
         openFullPageBtn.addEventListener('click', () => {
             window.parent.postMessage({ action: 'OPEN_FULL_PAGE' }, '*');
+        });
+    }
+
+    const settingsBtn = document.getElementById('settings-btn');
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            window.parent.postMessage({ action: 'OPEN_SETTINGS_PAGE' }, '*');
         });
     }
 
@@ -123,36 +131,15 @@ export function bindAppEvents(app, ui, setResizeRef) {
                 return;
             }
 
-            if (!modelSelect) return;
-
-            // Safety: Ensure selectedIndex is valid
-            if (modelSelect.selectedIndex === -1) {
-                if (modelSelect.options.length > 0) modelSelect.selectedIndex = 0;
-            }
-            if (modelSelect.selectedIndex === -1) return;
-
-            const tempSpan = document.createElement('span');
-            Object.assign(tempSpan.style, {
-                visibility: 'hidden',
-                position: 'absolute',
-                fontSize: '13px',
-                fontWeight: '500',
-                fontFamily: window.getComputedStyle(modelSelect).fontFamily,
-                whiteSpace: 'nowrap',
-            });
-            tempSpan.textContent = modelSelect.options[modelSelect.selectedIndex].text;
-            document.body.appendChild(tempSpan);
-            const width = tempSpan.getBoundingClientRect().width;
-            document.body.removeChild(tempSpan);
-            modelSelect.style.width = `${width + 34}px`;
+            resizeSelectToSelectedOption(modelSelect);
         });
     };
 
     if (setResizeRef) setResizeRef(resizeModelSelect); // Expose for message handler
 
     if (modelSelect) {
-        modelSelect.addEventListener('change', (e) => {
-            app.handleModelChange(e.target.value);
+        modelSelect.addEventListener('change', (changeEvent) => {
+            app.handleModelChange(changeEvent.target.value);
             resizeModelSelect();
         });
         // Call initial resize after a short delay to ensure fonts/styles loaded
@@ -164,12 +151,12 @@ export function bindAppEvents(app, ui, setResizeRef) {
     const sendBtn = document.getElementById('send');
 
     if (inputFn && sendBtn) {
-        inputFn.addEventListener('keydown', (e) => {
+        inputFn.addEventListener('keydown', (keyEvent) => {
             // Tab Cycle Models
-            if (e.key === 'Tab') {
-                e.preventDefault();
+            if (keyEvent.key === 'Tab') {
+                keyEvent.preventDefault();
                 if (modelSelect) {
-                    const direction = e.shiftKey ? -1 : 1;
+                    const direction = keyEvent.shiftKey ? -1 : 1;
                     const newIndex =
                         (modelSelect.selectedIndex + direction + modelSelect.length) %
                         modelSelect.length;
@@ -179,8 +166,8 @@ export function bindAppEvents(app, ui, setResizeRef) {
                 return;
             }
 
-            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-                e.preventDefault();
+            if (keyEvent.key === 'Enter' && !keyEvent.shiftKey && !keyEvent.isComposing) {
+                keyEvent.preventDefault();
                 sendBtn.click();
             }
         });
@@ -194,9 +181,9 @@ export function bindAppEvents(app, ui, setResizeRef) {
         });
     }
 
-    document.addEventListener('keydown', (e) => {
-        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
-            e.preventDefault();
+    document.addEventListener('keydown', (keyEvent) => {
+        if ((keyEvent.ctrlKey || keyEvent.metaKey) && keyEvent.key.toLowerCase() === 'p') {
+            keyEvent.preventDefault();
             if (inputFn) inputFn.focus();
         }
     });

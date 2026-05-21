@@ -9,16 +9,18 @@ import {
     createDefaultMcpServer,
     getDefaultMcpUrlForTransport,
 } from '../../../../shared/settings/connection.js';
-import {
-    formatMcpHeaders,
-    inferMcpTransport,
-    normalizeMcpHeaders,
-    normalizeOpenAISettings,
-    parseMcpHeadersText,
-} from './connection_utils.js';
+import { inferMcpTransport, normalizeMcpHeaders } from '../../../../shared/mcp/transport.js';
+import { normalizeOpenAIWebSearchSettings } from '../../../../shared/settings/openai.js';
+import { formatMcpHeaders, parseMcpHeadersText } from './mcp_header_fields.js';
 import { bindConnectionSectionEvents } from './connection_events.js';
 import { renderMcpToolsUI } from './mcp_tools_view.js';
 import { t } from '../../../core/i18n.js';
+import { createPrefixedId } from '../../../../shared/utils/index.js';
+import { DOM_IDS } from '../constants.js';
+
+export function createMcpServerId() {
+    return createPrefixedId('srv');
+}
 
 export class ConnectionSection {
     constructor() {
@@ -32,7 +34,7 @@ export class ConnectionSection {
     }
 
     _makeServerId() {
-        return `srv_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+        return createMcpServerId();
     }
 
     _getDefaultServer() {
@@ -46,46 +48,46 @@ export class ConnectionSection {
     queryElements() {
         const get = (id) => document.getElementById(id);
         this.elements = {
-            providerSelect: get('provider-select'),
-            apiKeyContainer: get('api-key-container'),
+            providerSelect: get(DOM_IDS.PROVIDER_SELECT),
+            apiKeyContainer: get(DOM_IDS.API_KEY_CONTAINER),
 
             // Official Fields
-            officialFields: get('official-fields'),
-            officialBaseUrl: get('official-base-url'),
-            apiKeyInput: get('api-key-input'),
-            officialModel: get('official-model'),
-            thinkingLevelSelect: get('thinking-level-select'),
-            officialWebSearchEnabled: get('official-web-search-enabled'),
+            officialFields: get(DOM_IDS.OFFICIAL_FIELDS),
+            officialBaseUrl: get(DOM_IDS.OFFICIAL_BASE_URL),
+            apiKeyInput: get(DOM_IDS.OFFICIAL_API_KEY),
+            officialModel: get(DOM_IDS.OFFICIAL_MODEL),
+            thinkingLevelSelect: get(DOM_IDS.OFFICIAL_THINKING_LEVEL),
+            officialWebSearchEnabled: get(DOM_IDS.OFFICIAL_WEB_SEARCH),
 
             // OpenAI Fields
-            openaiFields: get('openai-fields'),
-            openaiBaseUrl: get('openai-base-url'),
-            openaiApiKey: get('openai-api-key'),
-            openaiModel: get('openai-model'),
-            openaiThinkingLevelSelect: get('openai-thinking-level-select'),
-            openaiUseResponsesApi: get('openai-use-responses-api'),
-            openaiWebSearch: get('openai-web-search-enabled'),
+            openaiFields: get(DOM_IDS.OPENAI_FIELDS),
+            openaiBaseUrl: get(DOM_IDS.OPENAI_BASE_URL),
+            openaiApiKey: get(DOM_IDS.OPENAI_API_KEY),
+            openaiModel: get(DOM_IDS.OPENAI_MODEL),
+            openaiThinkingLevelSelect: get(DOM_IDS.OPENAI_THINKING_LEVEL),
+            openaiUseResponsesApi: get(DOM_IDS.OPENAI_USE_RESPONSES_API),
+            openaiWebSearch: get(DOM_IDS.OPENAI_WEB_SEARCH),
 
             // MCP Fields
-            mcpEnabled: get('mcp-enabled'),
-            mcpFields: get('mcp-fields'),
-            mcpServerSelect: get('mcp-server-select'),
-            mcpAddServer: get('mcp-add-server'),
-            mcpRemoveServer: get('mcp-remove-server'),
-            mcpServerName: get('mcp-server-name'),
-            mcpTransport: get('mcp-transport'),
-            mcpServerUrl: get('mcp-server-url'),
-            mcpHeaders: get('mcp-headers'),
-            mcpServerEnabled: get('mcp-server-enabled'),
-            mcpTestConnection: get('mcp-test-connection'),
-            mcpTestStatus: get('mcp-test-status'),
-            mcpToolMode: get('mcp-tool-mode'),
-            mcpRefreshTools: get('mcp-refresh-tools'),
-            mcpEnableAllTools: get('mcp-enable-all-tools'),
-            mcpDisableAllTools: get('mcp-disable-all-tools'),
-            mcpToolSearch: get('mcp-tool-search'),
-            mcpToolsSummary: get('mcp-tools-summary'),
-            mcpToolList: get('mcp-tool-list'),
+            mcpEnabled: get(DOM_IDS.MCP_ENABLED),
+            mcpFields: get(DOM_IDS.MCP_FIELDS),
+            mcpServerSelect: get(DOM_IDS.MCP_SERVER_SELECT),
+            mcpAddServer: get(DOM_IDS.MCP_ADD_SERVER),
+            mcpRemoveServer: get(DOM_IDS.MCP_REMOVE_SERVER),
+            mcpServerName: get(DOM_IDS.MCP_SERVER_NAME),
+            mcpTransport: get(DOM_IDS.MCP_TRANSPORT),
+            mcpServerUrl: get(DOM_IDS.MCP_SERVER_URL),
+            mcpHeaders: get(DOM_IDS.MCP_HEADERS),
+            mcpServerEnabled: get(DOM_IDS.MCP_SERVER_ENABLED),
+            mcpTestConnection: get(DOM_IDS.MCP_TEST_CONNECTION),
+            mcpTestStatus: get(DOM_IDS.MCP_TEST_STATUS),
+            mcpToolMode: get(DOM_IDS.MCP_TOOL_MODE),
+            mcpRefreshTools: get(DOM_IDS.MCP_REFRESH_TOOLS),
+            mcpEnableAllTools: get(DOM_IDS.MCP_ENABLE_ALL_TOOLS),
+            mcpDisableAllTools: get(DOM_IDS.MCP_DISABLE_ALL_TOOLS),
+            mcpToolSearch: get(DOM_IDS.MCP_TOOL_SEARCH),
+            mcpToolsSummary: get(DOM_IDS.MCP_TOOLS_SUMMARY),
+            mcpToolList: get(DOM_IDS.MCP_TOOL_LIST),
         };
     }
 
@@ -112,39 +114,41 @@ export class ConnectionSection {
 
         // Provider
         if (providerSelect) {
-            providerSelect.value = data.provider || DEFAULT_PROVIDER;
-            this.updateVisibility(data.provider || DEFAULT_PROVIDER);
+            const providerVal = data?.provider || DEFAULT_PROVIDER;
+            providerSelect.value = providerVal;
+            this.updateVisibility(providerVal);
         }
 
         // Official
         if (officialBaseUrl)
-            officialBaseUrl.value = data.officialBaseUrl || DEFAULT_OFFICIAL_BASE_URL;
-        if (apiKeyInput) apiKeyInput.value = data.apiKey || '';
-        if (officialModel) officialModel.value = data.officialModel || DEFAULT_OFFICIAL_MODELS;
+            officialBaseUrl.value = data?.officialBaseUrl || DEFAULT_OFFICIAL_BASE_URL;
+        if (apiKeyInput) apiKeyInput.value = data?.apiKey || '';
+        if (officialModel) officialModel.value = data?.officialModel || DEFAULT_OFFICIAL_MODELS;
         if (thinkingLevelSelect)
-            thinkingLevelSelect.value = data.thinkingLevel || DEFAULT_THINKING_LEVEL;
+            thinkingLevelSelect.value = data?.thinkingLevel || DEFAULT_THINKING_LEVEL;
         if (officialWebSearchEnabled)
-            officialWebSearchEnabled.checked = data.officialWebSearch === true;
+            officialWebSearchEnabled.checked = data?.officialWebSearch === true;
 
         // OpenAI
-        if (openaiBaseUrl) openaiBaseUrl.value = data.openaiBaseUrl || '';
-        if (openaiApiKey) openaiApiKey.value = data.openaiApiKey || '';
-        if (openaiModel) openaiModel.value = data.openaiModel || '';
+        if (openaiBaseUrl) openaiBaseUrl.value = data?.openaiBaseUrl || '';
+        if (openaiApiKey) openaiApiKey.value = data?.openaiApiKey || '';
+        if (openaiModel) openaiModel.value = data?.openaiModel || '';
         if (openaiThinkingLevelSelect)
-            openaiThinkingLevelSelect.value = data.openaiThinkingLevel || DEFAULT_THINKING_LEVEL;
-        const openaiSettings = normalizeOpenAISettings(data);
+            openaiThinkingLevelSelect.value = data?.openaiThinkingLevel || DEFAULT_THINKING_LEVEL;
+        const openaiSettings = normalizeOpenAIWebSearchSettings(data || {});
         if (openaiUseResponsesApi) openaiUseResponsesApi.checked = openaiSettings.useResponsesApi;
         if (openaiWebSearch) openaiWebSearch.checked = openaiSettings.webSearch;
 
         // MCP
         if (mcpEnabled) {
-            mcpEnabled.checked = data.mcpEnabled === true;
+            mcpEnabled.checked = data?.mcpEnabled === true;
             this.updateMcpVisibility(mcpEnabled.checked);
         }
 
         // Servers list (preferred)
-        const servers = Array.isArray(data.mcpServers) ? data.mcpServers : null;
-        const activeId = typeof data.mcpActiveServerId === 'string' ? data.mcpActiveServerId : null;
+        const servers = data && Array.isArray(data.mcpServers) ? data.mcpServers : null;
+        const activeId =
+            data && typeof data.mcpActiveServerId === 'string' ? data.mcpActiveServerId : null;
 
         if (servers && servers.length > 0) {
             this.mcpServers = servers.map((s) => ({
@@ -163,13 +167,13 @@ export class ConnectionSection {
                     : this.mcpServers[0].id;
         } else {
             // Legacy single server fields
-            const legacyUrl = data.mcpServerUrl || '';
-            const legacyTransport = data.mcpTransport || DEFAULT_MCP_TRANSPORT;
+            const legacyUrl = data?.mcpServerUrl || '';
+            const legacyTransport = data?.mcpTransport || DEFAULT_MCP_TRANSPORT;
             const server = this._getDefaultServer();
             server.transport = legacyTransport;
             server.url = legacyUrl || server.url;
-            server.headers = normalizeMcpHeaders(data.mcpHeaders);
-            server.enabled = data.mcpEnabled === true;
+            server.headers = normalizeMcpHeaders(data?.mcpHeaders);
+            server.enabled = data?.mcpEnabled === true;
             this.mcpServers = [server];
             this.mcpActiveServerId = server.id;
         }
@@ -365,7 +369,7 @@ export class ConnectionSection {
         const { mcpTestStatus } = this.elements;
         if (!mcpTestStatus) return;
         mcpTestStatus.textContent = text || '';
-        mcpTestStatus.style.color = isError ? '#b00020' : '';
+        mcpTestStatus.classList.toggle('is-error', isError);
     }
 
     _serverKey(server) {

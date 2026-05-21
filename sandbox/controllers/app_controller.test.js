@@ -13,7 +13,7 @@ vi.mock('../render/context_compression.js', () => ({
     appendContextCompressionNotice: vi.fn(),
 }));
 
-vi.mock('../../shared/dom/crop_utils.js', () => ({
+vi.mock('../../shared/dom/crop_image.js', () => ({
     cropImage: vi.fn(),
 }));
 
@@ -247,5 +247,20 @@ describe('AppController session restore behavior', () => {
                 controllable: true,
             },
         });
+    });
+
+    it('ignores malformed incoming window messages', async () => {
+        const { app, ui } = createAppHarness();
+
+        await app.handleIncomingMessage({ data: null });
+        await app.handleIncomingMessage({
+            data: {
+                action: 'BACKGROUND_MESSAGE',
+                payload: null,
+            },
+        });
+
+        expect(ui.updateBrowserControlState).not.toHaveBeenCalled();
+        expect(ui.updateStatus).not.toHaveBeenCalled();
     });
 });

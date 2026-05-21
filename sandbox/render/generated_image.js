@@ -1,5 +1,5 @@
 import { sendToBackground } from '../../shared/messaging/index.js';
-import { getHighResImageUrl } from '../../shared/utils/index.js';
+import { createPrefixedId, getHighResImageUrl } from '../../shared/utils/index.js';
 import { t } from '../core/i18n.js';
 
 export function createGeneratedImage(imgData) {
@@ -11,14 +11,8 @@ export function createGeneratedImage(imgData) {
     img.src =
         'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxIDEiPjwvc3ZnPg==';
 
-    // Generate Unique Request ID for background fetching correlation
-    const reqId = 'gen_img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const reqId = createPrefixedId('gen_img');
     img.dataset.reqId = reqId;
-
-    // Visual Placeholder Style
-    img.style.background = '#f0f4f9';
-    img.style.minHeight = '200px'; // Prevent layout shift before CSS loads or image renders
-    img.style.display = 'block';
 
     // Upgrade to HD (Original Size) using shared utility
     const targetUrl = getHighResImageUrl(imgData.url);

@@ -35,4 +35,20 @@ describe('toolbar i18n', () => {
         window.GeminiToolbarI18n.setLanguagePreference('zh');
         expect(window.GeminiToolbarStrings.askAi).toBe('询问 AI');
     });
+
+    it('builds translation prompts for multiple selected target languages', async () => {
+        await loadToolbarI18n({ language: 'zh-CN', storedLanguage: 'zh' });
+
+        const textPrompt = window.GeminiToolbarStrings.prompts.textTranslate('Hello', [
+            'zh-Hans',
+            'ja',
+        ]);
+        expect(textPrompt).toContain('简体中文、日语');
+        expect(textPrompt).toContain('按语言分段');
+        expect(textPrompt).toContain('"Hello"');
+
+        const imagePrompt = window.GeminiToolbarStrings.prompts.imageTranslate(['en', 'fr']);
+        expect(imagePrompt).toContain('英语、法语');
+        expect(imagePrompt).toContain('按语言分段');
+    });
 });

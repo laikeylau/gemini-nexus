@@ -71,9 +71,9 @@ export class MouseActions extends BaseActionHandler {
             const hitTestResult = await this.cmd('Runtime.callFunctionOn', {
                 objectId,
                 functionDeclaration: `function(x, y) {
-                    const el = document.elementFromPoint(x, y);
-                    if (!el) return false;
-                    return this.contains(el) || el.contains(this);
+                    const hitElement = document.elementFromPoint(x, y);
+                    if (!hitElement) return false;
+                    return this.contains(hitElement) || hitElement.contains(this);
                 }`,
                 arguments: [{ value: x }, { value: y }],
                 returnByValue: true,

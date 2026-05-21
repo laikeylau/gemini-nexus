@@ -1,21 +1,28 @@
-import { downloadFile, downloadText } from '../utils/download.js';
+import { downloadFile, downloadText } from './downloads.js';
 import {
     DEFAULT_CONTEXT_MODE,
-    DEFAULT_CONTEXT_RECENT_TURNS,
-    DEFAULT_MCP_TRANSPORT,
-    DEFAULT_OFFICIAL_BASE_URL,
-    DEFAULT_OFFICIAL_MODELS,
-    DEFAULT_THINKING_LEVEL,
+    normalizeContextRecentTurns,
 } from '../../shared/config/constants.js';
 import {
     CONNECTION_STORAGE_KEYS,
     createConnectionSettingsPayload,
+    createConnectionStorageUpdate,
 } from '../../shared/settings/connection.js';
+import { CUSTOM_SELECTION_TOOLS_STORAGE_KEY } from '../../shared/settings/selection_tools.js';
 import {
     mergeSessionSaveWithCurrent,
     normalizeDeletedSessionIds,
     normalizeSessionSavePayload,
 } from './session_merge.js';
+import { publishHostContext } from './host_context.js';
+import {
+    restoreAccountIndices,
+    restoreContextSettings,
+    restoreCustomSelectionTools,
+    restoreImageTools,
+    restoreTextSelection,
+    restoreTextSelectionBlacklist,
+} from './preferences.js';
 
 function getModelSaveKey(payload) {
     if (payload && typeof payload === 'object') {
@@ -55,14 +62,18 @@ export class MessageBridge {
         // Security check: Only accept messages from our direct iframe
         if (!this.frame.isWindow(event.source)) return;
 
-        const { action, payload } = event.data;
+        const { action, payload } = event.data || {};
+        if (!action) return;
 
         switch (action) {
             case 'UI_READY':
                 this.state.markUiReady();
-                return;
+                return void publishHostContext(this.frame, () => this.isRunningInTab());
             case 'OPEN_FULL_PAGE':
                 this.openFullPage();
+                return;
+            case 'OPEN_SETTINGS_PAGE':
+                this.openSettingsPage();
                 return;
             case 'OPEN_EXTERNAL_URL':
                 this.openExternalUrl(payload);
@@ -80,16 +91,22 @@ export class MessageBridge {
                 downloadText(payload.text, payload.filename || 'gemini-nexus-logs.txt');
                 return;
             case 'GET_TEXT_SELECTION':
-                this.restoreTextSelection();
+                restoreTextSelection(this.frame);
+                return;
+            case 'GET_TEXT_SELECTION_BLACKLIST':
+                restoreTextSelectionBlacklist(this.frame);
+                return;
+            case 'GET_CUSTOM_SELECTION_TOOLS':
+                restoreCustomSelectionTools(this.frame);
                 return;
             case 'GET_IMAGE_TOOLS':
-                this.restoreImageTools();
+                restoreImageTools(this.frame);
                 return;
             case 'GET_ACCOUNT_INDICES':
-                this.restoreAccountIndices();
+                restoreAccountIndices(this.frame);
                 return;
             case 'GET_CONTEXT_SETTINGS':
-                this.restoreContextSettings();
+                restoreContextSettings(this.frame);
                 return;
             case 'GET_CONNECTION_SETTINGS':
                 this.restoreConnectionSettings();
@@ -111,6 +128,15 @@ export class MessageBridge {
                 return;
             case 'SAVE_TEXT_SELECTION':
                 this.state.save('geminiTextSelectionEnabled', payload);
+                return;
+            case 'SAVE_TEXT_SELECTION_BLACKLIST':
+                this.state.save('geminiTextSelectionBlacklist', payload || '');
+                return;
+            case 'SAVE_CUSTOM_SELECTION_TOOLS':
+                this.state.save(
+                    CUSTOM_SELECTION_TOOLS_STORAGE_KEY,
+                    Array.isArray(payload) ? payload : []
+                );
                 return;
             case 'SAVE_IMAGE_TOOLS':
                 this.state.save('geminiImageToolsEnabled', payload);
@@ -143,6 +169,36 @@ export class MessageBridge {
         chrome.tabs.create({ url });
     }
 
+    openSettingsPage() {
+        this.isRunningInTab()
+            .then((isTab) => {
+                if (isTab) {
+                    this.frame.postMessage({ action: 'OPEN_SETTINGS_MODAL' });
+                    return;
+                }
+
+                const url = chrome.runtime.getURL('settings/index.html');
+                chrome.tabs.create({ url });
+            })
+            .catch(() => {
+                const url = chrome.runtime.getURL('settings/index.html');
+                chrome.tabs.create({ url });
+            });
+    }
+
+    isRunningInTab() {
+        return new Promise((resolve) => {
+            if (!chrome.tabs || typeof chrome.tabs.getCurrent !== 'function') {
+                resolve(false);
+                return;
+            }
+
+            chrome.tabs.getCurrent((tab) => {
+                resolve(Boolean(tab && Number.isInteger(tab.id) && tab.id > 0));
+            });
+        });
+    }
+
     openExternalUrl(payload) {
         const url = payload?.url;
         if (typeof url === 'string' && /^https?:\/\//i.test(url)) {
@@ -173,41 +229,6 @@ export class MessageBridge {
                 }
             })
             .catch((error) => console.warn('Error forwarding to background:', error));
-    }
-
-    restoreTextSelection() {
-        chrome.storage.local.get(['geminiTextSelectionEnabled'], (result) => {
-            const enabled = result.geminiTextSelectionEnabled !== false;
-            this.frame.postMessage({ action: 'RESTORE_TEXT_SELECTION', payload: enabled });
-        });
-    }
-
-    restoreImageTools() {
-        chrome.storage.local.get(['geminiImageToolsEnabled'], (result) => {
-            const enabled = result.geminiImageToolsEnabled !== false;
-            this.frame.postMessage({ action: 'RESTORE_IMAGE_TOOLS', payload: enabled });
-        });
-    }
-
-    restoreAccountIndices() {
-        chrome.storage.local.get(['geminiAccountIndices'], (result) => {
-            this.frame.postMessage({
-                action: 'RESTORE_ACCOUNT_INDICES',
-                payload: result.geminiAccountIndices || '0',
-            });
-        });
-    }
-
-    restoreContextSettings() {
-        chrome.storage.local.get(['geminiContextMode', 'geminiContextRecentTurns'], (result) => {
-            this.frame.postMessage({
-                action: 'RESTORE_CONTEXT_SETTINGS',
-                payload: {
-                    mode: result.geminiContextMode || DEFAULT_CONTEXT_MODE,
-                    recentTurns: result.geminiContextRecentTurns || DEFAULT_CONTEXT_RECENT_TURNS,
-                },
-            });
-        });
     }
 
     restoreConnectionSettings() {
@@ -247,43 +268,17 @@ export class MessageBridge {
             'geminiContextMode',
             payload?.mode === 'recent' ? 'recent' : DEFAULT_CONTEXT_MODE
         );
-        const recentTurns = Number.parseInt(payload?.recentTurns, 10);
         this.state.save(
             'geminiContextRecentTurns',
-            Number.isFinite(recentTurns)
-                ? Math.min(50, Math.max(1, recentTurns))
-                : DEFAULT_CONTEXT_RECENT_TURNS
+            normalizeContextRecentTurns(payload?.recentTurns)
         );
     }
 
     saveConnectionSettings(payload) {
-        this.state.save('geminiProvider', payload.provider);
-        this.state.save('geminiUseOfficialApi', payload.provider === 'official');
-        this.state.save(
-            'geminiOfficialBaseUrl',
-            payload.officialBaseUrl || DEFAULT_OFFICIAL_BASE_URL
-        );
-        this.state.save('geminiApiKey', payload.apiKey);
-        this.state.save('geminiOfficialModel', payload.officialModel || DEFAULT_OFFICIAL_MODELS);
-        this.state.save('geminiThinkingLevel', payload.thinkingLevel);
-        this.state.save('geminiOfficialWebSearch', payload.officialWebSearch === true);
-        this.state.save('geminiOpenaiBaseUrl', payload.openaiBaseUrl);
-        this.state.save('geminiOpenaiApiKey', payload.openaiApiKey);
-        this.state.save('geminiOpenaiModel', payload.openaiModel);
-        this.state.save(
-            'geminiOpenaiThinkingLevel',
-            payload.openaiThinkingLevel || DEFAULT_THINKING_LEVEL
-        );
-        this.state.save('geminiOpenaiUseResponsesApi', payload.openaiUseResponsesApi === true);
-        this.state.save('geminiOpenaiWebSearch', payload.openaiWebSearch === true);
-        this.state.save('geminiMcpEnabled', payload.mcpEnabled === true);
-        this.state.save('geminiMcpTransport', payload.mcpTransport || DEFAULT_MCP_TRANSPORT);
-        this.state.save('geminiMcpServerUrl', payload.mcpServerUrl || '');
-        this.state.save(
-            'geminiMcpServers',
-            Array.isArray(payload.mcpServers) ? payload.mcpServers : []
-        );
-        this.state.save('geminiMcpActiveServerId', payload.mcpActiveServerId || null);
+        const storageUpdate = createConnectionStorageUpdate(payload);
+        for (const [key, value] of Object.entries(storageUpdate)) {
+            this.state.save(key, value);
+        }
     }
 
     postBackgroundMessage(payload) {

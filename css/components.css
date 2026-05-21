@@ -53,16 +53,32 @@
 
 .btn-primary:hover {
     background: var(--primary-hover);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
 }
 
 .btn-secondary {
     background: transparent;
     color: var(--primary);
     border: 1px solid var(--border-color);
+    transition: all 0.2s;
 }
 
 .btn-secondary:hover {
     background: var(--bg-sidebar);
     border-color: var(--primary);
+    transform: translateY(-1px);
+}
+
+.empty-list-state {
+    padding: 16px;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 13px;
+}
+
+.clipboard-staging-input {
+    position: fixed;
+    left: -9999px;
+    top: 0;
 }

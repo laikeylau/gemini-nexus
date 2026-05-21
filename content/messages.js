@@ -25,6 +25,14 @@
                 return true;
             }
 
+            if (request.action === 'SHOW_EXTENSION_ERROR') {
+                if (this.toolbarController) {
+                    this.toolbarController.showExtensionError(request.message);
+                }
+                sendResponse({ status: 'ok' });
+                return true;
+            }
+
             if (request.action === 'START_SELECTION') {
                 this.captureSource = request.source;
                 this.captureTargetSidePanelTabId = request.targetSidePanelTabId || null;

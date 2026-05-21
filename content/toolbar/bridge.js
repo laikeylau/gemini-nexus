@@ -4,6 +4,7 @@
             this.host = hostElement;
             this.iframe = null;
             this.callbacksByRequestId = {};
+            this.requestIdCounter = 0;
             this.init();
         }
 
@@ -39,10 +40,14 @@
         }
 
         createRequestId() {
-            if (globalThis.crypto && typeof crypto.randomUUID === 'function') {
-                return crypto.randomUUID();
+            if (globalThis.GeminiNexusIds?.createPrefixedId) {
+                return globalThis.GeminiNexusIds.createPrefixedId('req');
             }
-            return `req_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+            if (globalThis.crypto && typeof globalThis.crypto.randomUUID === 'function') {
+                return `req_${globalThis.crypto.randomUUID().toUpperCase()}`;
+            }
+            this.requestIdCounter += 1;
+            return `req_${this.requestIdCounter}`;
         }
 
         async render(text, images = []) {

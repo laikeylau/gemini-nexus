@@ -1,7 +1,96 @@
 (function () {
+    const DEFAULT_TRANSLATION_TARGETS = ['auto'];
+    const TRANSLATION_TARGETS = [
+        { value: 'auto', zh: '自动', en: 'Auto' },
+        { value: 'zh-Hans', zh: '简体中文', en: 'Simplified Chinese' },
+        { value: 'zh-Hant', zh: '繁体中文', en: 'Traditional Chinese' },
+        { value: 'en', zh: '英语', en: 'English' },
+        { value: 'ja', zh: '日语', en: 'Japanese' },
+        { value: 'ko', zh: '韩语', en: 'Korean' },
+        { value: 'fr', zh: '法语', en: 'French' },
+        { value: 'de', zh: '德语', en: 'German' },
+        { value: 'es', zh: '西班牙语', en: 'Spanish' },
+        { value: 'ru', zh: '俄语', en: 'Russian' },
+    ];
+
     function resolveLanguagePreference(pref) {
         if (pref === 'zh' || pref === 'en') return pref;
         return navigator.language.startsWith('zh') ? 'zh' : 'en';
+    }
+
+    function normalizeTranslationTargets(targets) {
+        const allowed = new Set(TRANSLATION_TARGETS.map((target) => target.value));
+        const selected = (Array.isArray(targets) ? targets : [targets])
+            .filter((value) => allowed.has(value))
+            .filter((value, index, values) => values.indexOf(value) === index);
+        const explicitTargets = selected.filter((value) => value !== 'auto');
+        return explicitTargets.length > 0 ? explicitTargets : [...DEFAULT_TRANSLATION_TARGETS];
+    }
+
+    function getTargetOptions(isZh) {
+        return TRANSLATION_TARGETS.map((target) => ({
+            value: target.value,
+            label: isZh ? target.zh : target.en,
+        }));
+    }
+
+    function getTargetNames(isZh, targets) {
+        const normalizedTargets = normalizeTranslationTargets(targets);
+        const options = getTargetOptions(isZh);
+        return normalizedTargets
+            .map((value) => options.find((option) => option.value === value)?.label)
+            .filter(Boolean);
+    }
+
+    function joinTargetNames(isZh, targets) {
+        return getTargetNames(isZh, targets).join(isZh ? '、' : ', ');
+    }
+
+    function shouldUseAutoTranslation(targets) {
+        const normalizedTargets = normalizeTranslationTargets(targets);
+        return normalizedTargets.length === 1 && normalizedTargets[0] === 'auto';
+    }
+
+    function buildTextTranslatePrompt(isZh, text, targets = DEFAULT_TRANSLATION_TARGETS) {
+        if (shouldUseAutoTranslation(targets)) {
+            return isZh
+                ? `请将以下文本翻译：\n- 如果是英文，翻译为中文。\n- 如果是中文，翻译为英文。\n- 如果是其他语言，翻译为中文。\n\n仅输出翻译结果，不要包含任何解释：\n\n"${text}"`
+                : `Translate the following text:\n- If it is English, translate to Chinese.\n- If it is Chinese, translate to English.\n- If it is any other language, translate to Chinese.\n\nOutput ONLY the translation, no explanation:\n\n"${text}"`;
+        }
+
+        const targetNames = joinTargetNames(isZh, targets);
+        const multiTarget = normalizeTranslationTargets(targets).length > 1;
+
+        if (isZh) {
+            return multiTarget
+                ? `请将以下文本分别翻译为：${targetNames}。\n请按语言分段输出，每段使用语言名称作为标题。仅输出翻译结果，不要包含任何解释：\n\n"${text}"`
+                : `请将以下文本翻译为${targetNames}。仅输出翻译结果，不要包含任何解释：\n\n"${text}"`;
+        }
+
+        return multiTarget
+            ? `Translate the following text into: ${targetNames}.\nOutput one section per language using the language name as the heading. Output ONLY the translation, no explanation:\n\n"${text}"`
+            : `Translate the following text into ${targetNames}. Output ONLY the translation, no explanation:\n\n"${text}"`;
+    }
+
+    function buildImageTranslatePrompt(isZh, targets = DEFAULT_TRANSLATION_TARGETS) {
+        if (shouldUseAutoTranslation(targets)) {
+            return isZh
+                ? '请识别图片中的文字并翻译：如果是英文则译为中文，是中文则译为英文，其他语言译为中文。仅输出翻译结果。'
+                : 'Extract text and translate: If English -> Chinese, If Chinese -> English, Others -> Chinese. Output only translation.';
+        }
+
+        const targetNames = joinTargetNames(isZh, targets);
+        const multiTarget = normalizeTranslationTargets(targets).length > 1;
+
+        if (isZh) {
+            return multiTarget
+                ? `请识别图片中的文字，并分别翻译为：${targetNames}。请按语言分段输出，每段使用语言名称作为标题。仅输出翻译结果。`
+                : `请识别图片中的文字，并翻译为${targetNames}。仅输出翻译结果。`;
+        }
+
+        return multiTarget
+            ? `Extract text from the image and translate it into: ${targetNames}. Output one section per language using the language name as the heading. Output only the translation.`
+            : `Extract text from the image and translate it into ${targetNames}. Output only the translation.`;
     }
 
     function createStrings(lang) {
@@ -20,9 +109,14 @@
             translate: isZh ? '翻译' : 'Translate',
             explain: isZh ? '解释' : 'Explain',
             summarize: isZh ? '总结' : 'Summarize',
+            customSelectionMore: isZh ? '更多自定义工具' : 'More custom tools',
             askImage: isZh ? '询问这张图片' : 'Ask AI about this image',
             close: isZh ? '关闭' : 'Close',
             askPlaceholder: isZh ? '询问 Gemini...' : 'Ask Gemini...',
+            toolbarProviderLabel: isZh ? '弹窗模型来源' : 'Popup provider',
+            providerWebShort: isZh ? '网页' : 'Web',
+            providerOfficialShort: isZh ? 'API' : 'API',
+            providerOpenAIShort: isZh ? 'OpenAI' : 'OpenAI',
             windowTitle: 'Gemini Nexus',
             retry: isZh ? '重试' : 'Retry',
             openSidebar: isZh ? '在侧边栏继续' : 'Open in Sidebar',
@@ -64,6 +158,9 @@
             ocr: isZh ? 'OCR' : 'OCR',
             translateAction: isZh ? '翻译' : 'Translate',
             snip: isZh ? '截图' : 'Snip',
+            translateTargetLabel: isZh ? '翻译为' : 'Translate to',
+            translationTargetOptions: getTargetOptions(isZh),
+            defaultTranslationTargets: [...DEFAULT_TRANSLATION_TARGETS],
 
             // --- AI Prompts (Centralized) ---
             prompts: {
@@ -72,9 +169,7 @@
                     ? '请识别并提取这张图片中的文字 (OCR)。仅输出识别到的文本内容，不需要任何解释。'
                     : 'Please OCR this image. Extract the text content exactly as is, without any explanation.',
 
-                imageTranslate: isZh
-                    ? '请识别图片中的文字并翻译：如果是英文则译为中文，是中文则译为英文，其他语言译为中文。仅输出翻译结果。'
-                    : 'Extract text and translate: If English -> Chinese, If Chinese -> English, Others -> Chinese. Output only translation.',
+                imageTranslate: (targets) => buildImageTranslatePrompt(isZh, targets),
 
                 analyze: isZh
                     ? '请详细分析并描述这张图片的内容。'
@@ -105,10 +200,7 @@
                     : 'Please describe the content of this screenshot in detail.',
 
                 // Text Actions
-                textTranslate: (text) =>
-                    isZh
-                        ? `请将以下文本翻译：\n- 如果是英文，翻译为中文。\n- 如果是中文，翻译为英文。\n- 如果是其他语言，翻译为中文。\n\n仅输出翻译结果，不要包含任何解释：\n\n"${text}"`
-                        : `Translate the following text:\n- If it is English, translate to Chinese.\n- If it is Chinese, translate to English.\n- If it is any other language, translate to Chinese.\n\nOutput ONLY the translation, no explanation:\n\n"${text}"`,
+                textTranslate: (text, targets) => buildTextTranslatePrompt(isZh, text, targets),
 
                 explain: (text) =>
                     isZh
@@ -140,6 +232,7 @@
                 explain: isZh ? '正在解释...' : 'Explaining...',
                 summarize: isZh ? '正在总结...' : 'Summarizing...',
                 grammar: isZh ? '正在修正...' : 'Fixing...',
+                customSelectionTool: isZh ? '正在处理...' : 'Processing...',
                 regenerate: isZh ? '正在重新生成...' : 'Regenerating...',
             },
 
@@ -207,5 +300,6 @@
     window.GeminiToolbarI18n = {
         setLanguagePreference: applyLanguagePreference,
         resolveLanguagePreference,
+        normalizeTranslationTargets,
     };
 })();

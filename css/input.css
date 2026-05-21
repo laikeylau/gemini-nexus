@@ -17,11 +17,6 @@ body.layout-wide .footer {
     padding-left: 300px; /* Sidebar width + padding */
 }
 
-/* Hide unsupported buttons in wide (full-page) mode */
-body.layout-wide .tool-btn.context-aware {
-    display: none !important;
-}
-
 body.layout-wide .input-wrapper {
     margin: 0 auto;
 }

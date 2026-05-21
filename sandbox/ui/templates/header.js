@@ -20,14 +20,12 @@ export const HeaderTemplate = `
             <button id="tab-switcher-btn" class="icon-btn" hidden data-i18n-title="selectTabTooltip" title="Select a tab to control">
                 ${TemplateIcons.TAB_STACK}
             </button>
+            <button id="open-full-page-btn" class="icon-btn" data-i18n-title="openFullPageTooltip" title="Open in Full Page">
+                ${TemplateIcons.EXTERNAL_OPEN}
+            </button>
             <button id="new-chat-header-btn" class="icon-btn" data-i18n-title="newChatTooltip" title="New Chat">
                 ${TemplateIcons.NEW_CHAT}
             </button>
         </div>
     </div>
-
-    <!-- Corner Button -->
-    <button id="open-full-page-btn" class="corner-btn" data-i18n-title="openFullPageTooltip" title="Open in Full Page">
-        ${TemplateIcons.EXTERNAL_OPEN}
-    </button>
 `;

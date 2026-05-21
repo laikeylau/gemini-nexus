@@ -19,7 +19,7 @@ function installToolbarStrings() {
         },
         prompts: {
             ocr: 'ocr prompt',
-            imageTranslate: 'translate prompt',
+            imageTranslate: (targets = []) => `image translate to ${targets.join(',')}`,
             analyze: 'analyze prompt',
             upscale: 'upscale prompt',
             expand: 'expand prompt',
@@ -27,7 +27,8 @@ function installToolbarStrings() {
             removeBg: 'remove background prompt',
             removeWatermark: 'remove watermark prompt',
             snipAnalyze: 'snip prompt',
-            textTranslate: (selection) => `translate ${selection}`,
+            textTranslate: (selection, targets = []) =>
+                `translate ${selection} to ${targets.join(',')}`,
             summarize: (selection) => `summarize ${selection}`,
             grammar: (selection) => `grammar ${selection}`,
             explain: (selection) => `explain ${selection}`,
@@ -61,6 +62,7 @@ function installToolbarStrings() {
             grammar: 'input grammar',
             explain: 'input explain',
         },
+        customSelectionToolInput: 'Custom tool',
         errors: {
             imageEditWebOnly: 'Image editing requires Gemini Web.',
         },
@@ -182,5 +184,87 @@ describe('ToolbarActions', () => {
         expect(ui.showLoading).not.toHaveBeenCalled();
         expect(ui.showError).toHaveBeenCalledWith('Image editing requires Gemini Web.');
         expect(chrome.runtime.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('uses selected translation targets when translating selected text', async () => {
+        const ui = {
+            hide: vi.fn(),
+            showAskWindow: vi.fn(async () => {}),
+            showLoading: vi.fn(),
+            setInputValue: vi.fn(),
+            getSelectedTranslationTargets: vi.fn(() => ['zh-Hans', 'ja']),
+        };
+        const actions = new window.GeminiToolbarActions(ui);
+
+        await actions.handleQuickAction('translate', 'Hello', { x: 1, y: 2 }, 'gemini-3-pro');
+
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(1);
+        expect(chrome.runtime.sendMessage.mock.lastCall[0]).toEqual(
+            expect.objectContaining({
+                action: 'QUICK_ASK',
+                text: 'translate Hello to zh-Hans,ja',
+            })
+        );
+    });
+
+    it('uses selected translation targets when translating images', async () => {
+        const ui = {
+            provider: 'web',
+            showAskWindow: vi.fn(async () => {}),
+            showLoading: vi.fn(),
+            setInputValue: vi.fn(),
+            getSelectedModel: vi.fn(() => 'gemini-3-pro'),
+            getSelectedTranslationTargets: vi.fn(() => ['en', 'fr']),
+        };
+        const actions = new window.GeminiToolbarActions(ui);
+
+        await actions.handleImagePrompt(
+            'data:image/png;base64,AAA',
+            { x: 1, y: 2 },
+            'translate',
+            'gemini-3-pro'
+        );
+
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledTimes(1);
+        expect(chrome.runtime.sendMessage.mock.lastCall[0]).toEqual(
+            expect.objectContaining({
+                action: 'QUICK_ASK_IMAGE',
+                text: 'image translate to en,fr',
+            })
+        );
+    });
+
+    it('builds a custom selection tool prompt from the selected text', async () => {
+        const ui = {
+            hide: vi.fn(),
+            showAskWindow: vi.fn(async () => {}),
+            showLoading: vi.fn(),
+            setInputValue: vi.fn(),
+        };
+        const actions = new window.GeminiToolbarActions(ui);
+
+        await actions.handleCustomSelectionTool(
+            {
+                id: 'formal',
+                name: 'Formal',
+                prompt: 'Rewrite formally:\n{text}',
+            },
+            'Hello world',
+            { x: 1, y: 2 },
+            'gemini-3-pro'
+        );
+
+        expect(ui.showAskWindow).toHaveBeenCalledWith(
+            { x: 1, y: 2 },
+            'Hello world',
+            'Formal',
+            null
+        );
+        expect(ui.setInputValue).toHaveBeenCalledWith('Formal');
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+            action: 'QUICK_ASK',
+            text: 'Rewrite formally:\nHello world',
+            model: 'gemini-3-pro',
+        });
     });
 });

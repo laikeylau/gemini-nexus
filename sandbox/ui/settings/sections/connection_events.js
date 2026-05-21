@@ -1,5 +1,5 @@
 import { sendToBackground } from '../../../../shared/messaging/index.js';
-import { inferMcpTransport, normalizeMcpHeaders } from './connection_utils.js';
+import { inferMcpTransport, normalizeMcpHeaders } from '../../../../shared/mcp/transport.js';
 import { t } from '../../../core/i18n.js';
 
 export function bindConnectionSectionEvents(section) {

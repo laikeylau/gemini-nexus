@@ -19,10 +19,10 @@ export const TabSelectorTemplate = `
     </div>
 
     <!-- TAB SELECTOR MODAL -->
-    <div id="tab-selector-modal" class="settings-modal">
+    <div id="tab-selector-modal" class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="tab-selector-title">
         <div class="settings-content">
             <div class="settings-header">
-                <h3 data-i18n="selectTab">Select Active Tab</h3>
+                <h3 id="tab-selector-title" data-i18n="selectTab">Select Active Tab</h3>
                 <button id="close-tab-selector" class="icon-btn small" data-i18n-title="close" title="Close">✕</button>
             </div>
             <div class="settings-body">

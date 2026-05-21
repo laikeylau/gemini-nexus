@@ -9,11 +9,15 @@ import {
 describe('project code hygiene', () => {
     it('does not export helpers that are only used inside their own module', async () => {
         const webModels = await readProjectFile('shared/models/web_models.js');
-        const sessionUtils = await readProjectFile('background/handlers/session/utils.js');
+        const officialFunctionResponse = await readProjectFile(
+            'background/handlers/session/official_function_response.js'
+        );
         const packageExtension = await readProjectFile('scripts/package-extension.mjs');
 
         expect(webModels).not.toMatch(/export function normalizeWebModel\s*\(/);
-        expect(sessionUtils).not.toMatch(/export function createOfficialFunctionResponsePart\s*\(/);
+        expect(officialFunctionResponse).not.toMatch(
+            /export function createOfficialFunctionResponsePart\s*\(/
+        );
         expect(packageExtension).not.toMatch(/export function getLocalDependencyAssets\s*\(/);
     });
 
@@ -74,7 +78,7 @@ describe('project code hygiene', () => {
             'content/toolbar/controller.js',
             'content/toolbar/view/index.js',
             'content/toolbar/view/window.js',
-            'content/toolbar/view/utils.js',
+            'content/toolbar/view/layout.js',
         ];
 
         for (const file of files) {
@@ -256,5 +260,211 @@ describe('project code hygiene', () => {
             const source = await readProjectFile(sourcePath);
             expect(source, sourcePath).not.toMatch(/\bval\b/);
         }
+    });
+
+    it('uses descriptive DOM variable names in UI and control code', async () => {
+        const sourceFiles = [
+            'background/control/actions/input/mouse.js',
+            'content/toolbar/view/widget.js',
+            'content/toolbar/view/window.js',
+            'sandbox/controllers/app_controller.js',
+            'sandbox/ui/chat.js',
+            'sandbox/ui/settings/sections/general.js',
+        ];
+
+        for (const sourcePath of sourceFiles) {
+            const source = await readProjectFile(sourcePath);
+            expect(source, sourcePath).not.toMatch(/\b(?:const|let|var)\s+(?:btn|el)\b/);
+        }
+
+        const chat = await readProjectFile('sandbox/ui/chat.js');
+        expect(chat).not.toMatch(/\b(?:const|let|var)\s+(?:wrapper|codeEl)\b/);
+
+        const uiDomBuilderFiles = [
+            'sandbox/core/image_manager.js',
+            'sandbox/ui/settings/sections/mcp_tools_view.js',
+            'sandbox/ui/sidebar.js',
+            'sandbox/ui/tab_selector.js',
+        ];
+        for (const sourcePath of uiDomBuilderFiles) {
+            const source = await readProjectFile(sourcePath);
+            expect(source, sourcePath).not.toMatch(
+                /\b(?:const|let|var)\s+(?:emptyEl|nameEl|fullEl|descEl|delBtn|lockBtn|removeBtn)\b/
+            );
+        }
+
+        const uiEventFiles = [
+            'sandbox/boot/events.js',
+            'sandbox/core/image_manager.js',
+            'sandbox/ui/chat.js',
+            'sandbox/ui/sidebar.js',
+            'sandbox/ui/settings/index.js',
+            'sandbox/ui/settings/view.js',
+            'sandbox/ui/tab_selector.js',
+        ];
+        for (const sourcePath of uiEventFiles) {
+            const source = await readProjectFile(sourcePath);
+            expect(source, sourcePath).not.toMatch(
+                /(?:\((?:e|ev)\)\s*=>|\.on\w+\s*=\s*\((?:e|ev)\)\s*=>)/
+            );
+        }
+    });
+
+    it('does not keep comments that only restate obvious UI section names', async () => {
+        const sourceFiles = [
+            'sandbox/core/image_manager.js',
+            'sandbox/ui/chat.js',
+            'sandbox/ui/tab_selector.js',
+        ];
+        const obviousComments = [
+            '// Auto-resize Textarea',
+            '// Code Block Copy Delegation',
+            '// Toggle button between Send and Stop',
+            '// Stop Icon (Square)',
+            '// Send Icon (Paper plane)',
+            '// File selection',
+            '// Drag and Drop',
+            '// Remove Button',
+            '// Content',
+            '// Tab Icon/Favicon',
+            '// Icons',
+        ];
+
+        for (const sourcePath of sourceFiles) {
+            const source = await readProjectFile(sourcePath);
+            for (const comment of obviousComments) {
+                expect(source, `${sourcePath}: ${comment}`).not.toContain(comment);
+            }
+        }
+    });
+
+    it('uses setting-specific input classes outside the shortcut settings section', async () => {
+        const sourceFiles = [
+            'sandbox/ui/templates/settings/appearance.js',
+            'sandbox/ui/templates/settings/connection.js',
+            'sandbox/ui/templates/settings/general.js',
+            'sandbox/ui/settings/sections/general.js',
+        ];
+
+        for (const sourcePath of sourceFiles) {
+            const source = await readProjectFile(sourcePath);
+            expect(source, sourcePath).not.toContain('shortcut-input settings-');
+            expect(source, sourcePath).not.toContain('shortcut-input setting-panel-small-input');
+        }
+    });
+
+    it('keeps tracked project guideline docs free of generator placeholders', async () => {
+        const sourceFiles = [
+            'docs/project-guidelines/backend-quality.md',
+            'docs/project-guidelines/frontend-components.md',
+        ];
+
+        for (const sourcePath of sourceFiles) {
+            const source = await readProjectFile(sourcePath);
+            expect(source, sourcePath).not.toContain('(To be filled by the team)');
+            expect(source, sourcePath).not.toContain("Document your project's");
+        }
+    });
+
+    it('keeps retained superpowers docs aligned with current settings structure', async () => {
+        const sourceFiles = [
+            'docs/superpowers/specs/2026-05-20-settings-optimization-design.md',
+            'docs/superpowers/plans/2026-05-20-settings-optimization-plan.md',
+        ];
+        const staleSnippets = [
+            'css/settings_layout.test.js` -> `test/ui/settings_layout.test.js',
+            'Move: `css/settings_layout.test.js` -> `test/ui/settings_layout.test.js`',
+            'test/ui/settings_layout.test.js',
+            'shortcut-input settings-full-input',
+            'srv_${Date.now()}_${Math.random()',
+            'custom-tool-${Date.now()}',
+            "from './connection_utils.js'",
+            'placeholder="Paste your Gemini API Key"',
+        ];
+
+        for (const sourcePath of sourceFiles) {
+            const source = await readProjectFile(sourcePath);
+            for (const snippet of staleSnippets) {
+                expect(source, `${sourcePath}: ${snippet}`).not.toContain(snippet);
+            }
+        }
+    });
+
+    it('does not duplicate localized placeholder text in templates', async () => {
+        const sourceFiles = [
+            'sandbox/ui/templates/footer.js',
+            'sandbox/ui/templates/sidebar.js',
+            'sandbox/ui/templates/settings/connection.js',
+            'sandbox/ui/templates/settings/general.js',
+        ];
+
+        for (const sourcePath of sourceFiles) {
+            const source = await readProjectFile(sourcePath);
+            expect(source, sourcePath).not.toMatch(
+                /(?:data-i18n-placeholder="[^"]+"[^>]*\splaceholder=|\splaceholder=(?:"[^"]*"|'[^']*')[^>]*data-i18n-placeholder=)/
+            );
+        }
+    });
+
+    it('keeps tool render DOM lookup helpers out of MessageHandler', async () => {
+        const handler = await readProjectFile('sandbox/controllers/message_handler.js');
+        const toolMessages = await readProjectFile('sandbox/controllers/message_tool_messages.js');
+
+        expect(handler).toContain("from './message_tool_messages.js'");
+        expect(handler).not.toContain("from './message_tool_render_state.js'");
+        expect(toolMessages).toContain("from './message_tool_render_state.js'");
+        expect(handler).not.toMatch(/^\s{4}hasRenderedToolOutput\s*\(/m);
+        expect(handler).not.toMatch(/^\s{4}findRenderedToolStatus\s*\(/m);
+        expect(handler).not.toMatch(/^\s{4}removeRenderedToolStatus\s*\(/m);
+    });
+
+    it('keeps generated image request IDs centralized', async () => {
+        const sourceFiles = ['sandbox/render/generated_image.js', 'sandbox/boot/renderer.js'];
+
+        for (const sourcePath of sourceFiles) {
+            const source = await readProjectFile(sourcePath);
+            expect(source, sourcePath).toContain('createPrefixedId');
+            expect(source, sourcePath).not.toContain('Date.now()');
+            expect(source, sourcePath).not.toContain('Math.random()');
+            expect(source, sourcePath).not.toContain('.substr(');
+        }
+    });
+
+    it('keeps DOM and settings correlation IDs centralized', async () => {
+        const sourceFiles = [
+            'content/toolbar/bridge.js',
+            'sandbox/render/content.js',
+            'sandbox/render/message.js',
+            'sandbox/ui/settings/sections/connection.js',
+            'sandbox/ui/settings/sections/general.js',
+            'shared/settings/connection.js',
+        ];
+
+        for (const sourcePath of sourceFiles) {
+            const source = await readProjectFile(sourcePath);
+            expect(source, sourcePath).toContain('createPrefixedId');
+            expect(source, sourcePath).not.toMatch(/Date\.now\(\)[\s\S]{0,80}Math\.random\(\)/);
+            expect(source, sourcePath).not.toContain('custom-tool-${Date.now()}');
+        }
+    });
+
+    it('keeps model select width measurement in the shared UI helper', async () => {
+        const sourceFiles = ['sandbox/boot/events.js', 'sandbox/ui/ui_controller.js'];
+
+        for (const sourcePath of sourceFiles) {
+            const source = await readProjectFile(sourcePath);
+            expect(source, sourcePath).toContain('resizeSelectToSelectedOption');
+            expect(source, sourcePath).not.toContain("document.createElement('span')");
+            expect(source, sourcePath).not.toContain('getBoundingClientRect().width');
+        }
+    });
+
+    it('keeps sidepanel download anchor triggering centralized', async () => {
+        const downloads = await readProjectFile('sidepanel/core/downloads.js');
+
+        expect(downloads).toContain('triggerDownload');
+        expect(downloads.match(/document\.createElement\('a'\)/g) ?? []).toHaveLength(1);
+        expect(downloads.match(/document\.body\.appendChild\(/g) ?? []).toHaveLength(1);
+        expect(downloads.match(/document\.body\.removeChild\(/g) ?? []).toHaveLength(1);
     });
 });

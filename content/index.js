@@ -1,9 +1,13 @@
 (function () {
+    if (window.GeminiNexusPageGuard?.isDisabled) return;
+    if (window.GeminiNexusContentReady === true) return;
+
     // Dependencies (Loaded via manifest order)
     const shortcuts = window.GeminiShortcuts;
     const router = window.GeminiMessageRouter;
     const Overlay = window.GeminiNexusOverlay;
     const Controller = window.GeminiToolbarController;
+    const settingsSync = window.GeminiContentSettingsSync;
 
     // Initialize Helpers
     const selectionOverlay = new Overlay();
@@ -15,32 +19,7 @@
     // Link Shortcuts
     shortcuts.setController(floatingToolbar);
 
-    // Handle initial settings that don't fit in dedicated modules yet
-    chrome.storage.local.get(
-        ['geminiTextSelectionEnabled', 'geminiImageToolsEnabled'],
-        (result) => {
-            const selectionEnabled = result.geminiTextSelectionEnabled !== false;
-            if (floatingToolbar) {
-                floatingToolbar.setSelectionEnabled(selectionEnabled);
-            }
+    settingsSync?.init?.(floatingToolbar);
 
-            const imageToolsEnabled = result.geminiImageToolsEnabled !== false;
-            if (floatingToolbar) {
-                floatingToolbar.setImageToolsEnabled(imageToolsEnabled);
-            }
-        }
-    );
-
-    chrome.storage.onChanged.addListener((changes, area) => {
-        if (area === 'local') {
-            if (changes.geminiTextSelectionEnabled) {
-                const enabled = changes.geminiTextSelectionEnabled.newValue !== false;
-                if (floatingToolbar) floatingToolbar.setSelectionEnabled(enabled);
-            }
-            if (changes.geminiImageToolsEnabled) {
-                const enabled = changes.geminiImageToolsEnabled.newValue !== false;
-                if (floatingToolbar) floatingToolbar.setImageToolsEnabled(enabled);
-            }
-        }
-    });
+    window.GeminiNexusContentReady = true;
 })();

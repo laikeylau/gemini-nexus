@@ -32,6 +32,7 @@ describe('GeminiToolbarTemplates', () => {
                 translate: 'Translate',
                 explain: 'Explain',
                 summarize: 'Summarize',
+                customSelectionMore: 'More custom tools',
                 aiTools: 'AI tools',
                 chatWithImage: 'Chat with image',
                 describeImage: 'Describe image',
@@ -46,6 +47,16 @@ describe('GeminiToolbarTemplates', () => {
                 windowTitle: 'Gemini Nexus',
                 close: 'Close',
                 askPlaceholder: 'Ask Gemini...',
+                toolbarProviderLabel: 'Popup provider',
+                providerWebShort: 'Web',
+                providerOfficialShort: 'API',
+                providerOpenAIShort: 'OpenAI',
+                translateTargetLabel: 'Translate to',
+                translationTargetOptions: [
+                    { value: 'auto', label: 'Auto' },
+                    { value: 'zh-Hans', label: 'Chinese' },
+                    { value: 'ja', label: 'Japanese' },
+                ],
                 retry: 'Retry',
                 openSidebar: 'Open in Sidebar',
                 chat: 'Chat',
@@ -83,5 +94,51 @@ describe('GeminiToolbarTemplates', () => {
         expect(logoIcon).not.toBeNull();
         expect(plusIcon).toBeNull();
         expect(externalIcon).toBeNull();
+    });
+
+    it('renders a provider selector for the ask window', () => {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = window.GeminiToolbarTemplates.mainStructure;
+
+        const providerSelect = wrapper.querySelector('#ask-provider-select');
+        const options = [...providerSelect.querySelectorAll('option')];
+
+        expect(providerSelect).not.toBeNull();
+        expect(providerSelect.getAttribute('title')).toBe('Popup provider');
+        expect(options.map((option) => option.value)).toEqual(['web', 'official', 'openai']);
+        expect(options.map((option) => option.textContent)).toEqual(['Web', 'API', 'OpenAI']);
+    });
+
+    it('renders a hidden multi-language translation target dropdown in the ask window', () => {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = window.GeminiToolbarTemplates.mainStructure;
+
+        const panel = wrapper.querySelector('#translation-targets');
+        const header = wrapper.querySelector('.ask-header');
+        const body = wrapper.querySelector('.window-body');
+        const trigger = wrapper.querySelector('#translation-target-trigger');
+        const menu = wrapper.querySelector('#translation-target-menu');
+        const options = [...wrapper.querySelectorAll('[name="translation-target"]')];
+
+        expect(panel).not.toBeNull();
+        expect(header.contains(panel)).toBe(true);
+        expect(body.contains(panel)).toBe(false);
+        expect(panel.classList.contains('hidden')).toBe(true);
+        expect(panel.textContent).toContain('Translate to');
+        expect(trigger).not.toBeNull();
+        expect(trigger.getAttribute('aria-expanded')).toBe('false');
+        expect(trigger.textContent).toContain('Auto');
+        expect(menu).not.toBeNull();
+        expect(menu.classList.contains('hidden')).toBe(true);
+        expect(options.map((option) => option.value)).toEqual(['auto', 'zh-Hans', 'ja']);
+    });
+
+    it('includes a custom selection tools mount point in the text toolbar', () => {
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = window.GeminiToolbarTemplates.mainStructure;
+
+        expect(wrapper.querySelector('#custom-selection-tools')).not.toBeNull();
+        expect(wrapper.querySelector('#custom-selection-more')).not.toBeNull();
+        expect(wrapper.querySelector('#btn-custom-selection-more')).not.toBeNull();
     });
 });

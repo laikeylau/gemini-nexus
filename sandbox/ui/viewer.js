@@ -82,7 +82,7 @@ export class ViewerController {
             setTimeout(() => {
                 if (this.fullImage) this.fullImage.src = '';
                 this.resetState();
-            }, 300);
+            }, 200);
         }
     }
 

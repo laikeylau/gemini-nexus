@@ -49,6 +49,77 @@
             display: none;
         }
 
+        .custom-selection-tools {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn.custom-selection-tool-btn {
+            width: auto;
+            min-width: 32px;
+            max-width: 64px;
+            padding: 6px 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 11px;
+            letter-spacing: 0;
+        }
+
+        .custom-selection-more {
+            position: relative;
+            display: flex;
+        }
+
+        .custom-selection-more.hidden {
+            display: none;
+        }
+
+        .custom-selection-more-menu {
+            position: absolute;
+            top: calc(100% + 6px);
+            right: 0;
+            min-width: 160px;
+            max-width: 240px;
+            display: none;
+            flex-direction: column;
+            gap: 2px;
+            padding: 4px;
+            border-radius: 8px;
+            background: #232429;
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+        }
+
+        .custom-selection-more:hover .custom-selection-more-menu,
+        .custom-selection-more:focus-within .custom-selection-more-menu {
+            display: flex;
+        }
+
+        .custom-selection-more-item {
+            width: 100%;
+            min-width: 0;
+            padding: 8px 10px;
+            border: none;
+            border-radius: 6px;
+            background: transparent;
+            color: #e0e0e0;
+            font: inherit;
+            font-size: 13px;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+        }
+
+        .custom-selection-more-item:hover,
+        .custom-selection-more-item:focus-visible {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            outline: none;
+        }
+
         /* Toolbar Drag Handle */
         .toolbar-drag-handle {
             display: flex;

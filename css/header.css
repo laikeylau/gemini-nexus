@@ -20,6 +20,10 @@ body.layout-wide #history-toggle {
     display: none;
 }
 
+body.host-tab #open-full-page-btn {
+    display: none;
+}
+
 .browser-control-bar {
     position: absolute;
     top: 58px;
@@ -179,6 +183,14 @@ body.layout-wide .browser-control-bar {
     color: var(--text-secondary);
 }
 
+.browser-tab-favicon {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    border-radius: 2px;
+    object-fit: contain;
+}
+
 .browser-tab-copy {
     min-width: 0;
     flex: 1;
@@ -214,9 +226,24 @@ body.layout-wide .browser-control-bar {
     color: var(--text-primary);
 }
 
+.tab-lock-only-btn.is-locked {
+    color: var(--primary);
+}
+
 .tab-lock-only-btn:disabled {
     cursor: not-allowed;
     opacity: 0.6;
+}
+
+.browser-trigger-favicon {
+    width: 20px;
+    height: 20px;
+    border-radius: 2px;
+    object-fit: contain;
+}
+
+#tab-switcher-btn.tab-switcher-locked {
+    border: 1px solid var(--primary);
 }
 
 @media (max-width: 600px) {
@@ -292,36 +319,14 @@ body.layout-wide .browser-control-bar {
     transform: translateY(0);
 }
 
-/* Corner Button Styles */
-.corner-btn {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 40px;
-    height: 40px;
-    background: var(--bg-sidebar);
-    border: none;
-    cursor: pointer;
-    z-index: 50;
-    padding: 0;
-    /* Triangle shape: Top-Left to Top-Right to Bottom-Right */
-    clip-path: polygon(0 0, 100% 0, 100% 100%);
-    color: var(--text-tertiary);
-    transition:
-        background-color 0.2s,
-        color 0.2s;
-    pointer-events: auto;
-}
+@media (max-width: 600px) {
+    .header {
+        padding: 16px;
+    }
 
-.corner-btn:hover {
-    background-color: var(--btn-hover);
-    color: var(--primary);
-}
-
-.corner-btn svg {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 16px;
-    height: 16px;
+    .header-right {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+    }
 }

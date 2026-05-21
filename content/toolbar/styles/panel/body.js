@@ -81,19 +81,29 @@
             text-decoration: underline;
         }
 
+        .gemini-loading-message {
+            margin-top: 10px;
+            color: #888;
+            font-style: italic;
+        }
+
         .gemini-image-preview {
             position: fixed;
             inset: 0;
             z-index: 2147483647;
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
             background: rgba(15, 15, 15, 0.86);
             cursor: grab;
             overflow: hidden;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease, visibility 0.25s;
         }
         .gemini-image-preview.visible {
-            display: flex;
+            opacity: 1;
+            visibility: visible;
         }
         .gemini-image-preview.is-panning {
             cursor: grabbing;

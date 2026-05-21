@@ -163,6 +163,18 @@
                         );
                         break;
 
+                    case 'custom_selection_tool':
+                        if (!this.controller.currentSelection || !data) return;
+                        this.controller.lastSessionId = null;
+                        this.actions.handleCustomSelectionTool(
+                            data,
+                            this.controller.currentSelection,
+                            this.controller.lastRect,
+                            currentModel,
+                            this.controller.lastMousePoint
+                        );
+                        break;
+
                     case 'insert_result':
                         this._handleInsert(data, false);
                         break;

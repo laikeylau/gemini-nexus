@@ -1,5 +1,5 @@
 (function () {
-    const Utils = window.GeminiViewUtils;
+    const Layout = window.GeminiViewLayout;
 
     /**
      * Sub-controller for Floating Toolbar and Image Button
@@ -11,7 +11,7 @@
 
         showToolbar(rect, mousePoint) {
             if (!this.elements.toolbar) return;
-            Utils.positionElement(this.elements.toolbar, rect, false, mousePoint);
+            Layout.positionElement(this.elements.toolbar, rect, false, mousePoint);
             this.elements.toolbar.classList.add('visible');
         }
 
@@ -41,14 +41,14 @@
         }
 
         toggleCopySelectionIcon(success) {
-            const btn = this.elements.buttons.copySelection;
-            if (!btn) return;
+            const copySelectionButton = this.elements.buttons.copySelection;
+            if (!copySelectionButton) return;
 
             const ICONS = window.GeminiToolbarIcons;
             if (success === true) {
-                btn.innerHTML = `${ICONS.CHECK}`;
+                copySelectionButton.innerHTML = `${ICONS.CHECK}`;
             } else {
-                btn.innerHTML = `${ICONS.COPY}`;
+                copySelectionButton.innerHTML = `${ICONS.COPY}`;
             }
         }
     }

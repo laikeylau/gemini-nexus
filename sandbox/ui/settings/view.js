@@ -3,11 +3,13 @@ import { GeneralSection } from './sections/general.js';
 import { AppearanceSection } from './sections/appearance.js';
 import { ShortcutsSection } from './sections/shortcuts.js';
 import { AboutSection } from './sections/about.js';
+import { DOM_IDS } from './constants.js';
 
 export class SettingsView {
     constructor(callbacks) {
         this.callbacks = callbacks || {};
         this.elements = {};
+        this._escapeKeyHandler = null;
 
         this.connection = new ConnectionSection();
 
@@ -37,10 +39,10 @@ export class SettingsView {
         const get = (id) => document.getElementById(id);
 
         this.elements = {
-            modal: get('settings-modal'),
-            btnClose: get('close-settings'),
-            btnSave: get('save-shortcuts'),
-            btnReset: get('reset-shortcuts'),
+            modal: get(DOM_IDS.MODAL),
+            btnClose: get(DOM_IDS.BTN_CLOSE),
+            btnSave: get(DOM_IDS.BTN_SAVE_SHORTCUTS),
+            btnReset: get(DOM_IDS.BTN_RESET_SHORTCUTS),
         };
     }
 
@@ -49,30 +51,67 @@ export class SettingsView {
 
         if (btnClose) btnClose.addEventListener('click', () => this.close());
         if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) this.close();
+            modal.addEventListener('click', (clickEvent) => {
+                if (clickEvent.target === modal) this.close();
             });
         }
 
         if (btnSave) btnSave.addEventListener('click', () => this.handleSave());
         if (btnReset) btnReset.addEventListener('click', () => this.handleReset());
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal && modal.classList.contains('visible')) {
-                this.close();
-            }
+        // Tab switching logic for the split settings layout
+        const tabs = document.querySelectorAll('.settings-tab');
+        const sections = document.querySelectorAll('.settings-section');
+        const tabTitle = document.getElementById('settings-tab-title');
+
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.getAttribute('data-tab');
+
+                tabs.forEach((t) => t.classList.remove('active'));
+                sections.forEach((s) => s.classList.remove('active'));
+
+                tab.classList.add('active');
+                const activeSection = document.querySelector(
+                    `.settings-section[data-section="${targetTab}"]`
+                );
+                if (activeSection) activeSection.classList.add('active');
+
+                // Update tab title and i18n
+                if (tabTitle) {
+                    const labelSpan = tab.querySelector('.tab-label');
+                    if (labelSpan) {
+                        tabTitle.textContent = labelSpan.textContent;
+                        const i18nKey = labelSpan.getAttribute('data-i18n');
+                        if (i18nKey) {
+                            tabTitle.setAttribute('data-i18n', i18nKey);
+                        } else {
+                            tabTitle.removeAttribute('data-i18n');
+                        }
+                    }
+                }
+            });
         });
     }
 
     handleSave() {
+        const data = this.getFormData();
+
+        this.fire('onSave', data);
+        this.close();
+    }
+
+    getFormData() {
         const shortcutsData = this.shortcuts.getData();
         const connectionData = this.connection.getData();
         const generalData = this.general.getData();
 
-        const data = {
+        return {
             shortcuts: shortcutsData,
             connection: connectionData,
             textSelection: generalData.textSelection,
+            textSelectionBlacklist: generalData.textSelectionBlacklist,
+            customSelectionTools: generalData.customSelectionTools,
             imageTools: generalData.imageTools,
             accountIndices: generalData.accountIndices,
             sidebarBehavior: generalData.sidebarBehavior,
@@ -80,9 +119,6 @@ export class SettingsView {
             contextMode: generalData.contextMode,
             contextRecentTurns: generalData.contextRecentTurns,
         };
-
-        this.fire('onSave', data);
-        this.close();
     }
 
     handleReset() {
@@ -92,6 +128,25 @@ export class SettingsView {
     open() {
         if (this.elements.modal) {
             this.elements.modal.classList.add('visible');
+
+            // Reset to the connection tab on open
+            const firstTab = document.querySelector('.settings-tab[data-tab="connection"]');
+            if (firstTab) firstTab.click();
+
+            // Bind Escape key event listener safely
+            if (!this._escapeKeyHandler) {
+                this._escapeKeyHandler = (keyEvent) => {
+                    if (
+                        keyEvent.key === 'Escape' &&
+                        this.elements.modal &&
+                        this.elements.modal.classList.contains('visible')
+                    ) {
+                        this.close();
+                    }
+                };
+                document.addEventListener('keydown', this._escapeKeyHandler);
+            }
+
             this.fire('onOpen');
         }
     }
@@ -99,6 +154,12 @@ export class SettingsView {
     close() {
         if (this.elements.modal) {
             this.elements.modal.classList.remove('visible');
+        }
+
+        // Safely unbind Escape key event listener
+        if (this._escapeKeyHandler) {
+            document.removeEventListener('keydown', this._escapeKeyHandler);
+            this._escapeKeyHandler = null;
         }
     }
 
@@ -123,6 +184,14 @@ export class SettingsView {
     // Delegation to General
     setToggles(textSelection, imageTools) {
         this.general.setToggles(textSelection, imageTools);
+    }
+
+    setTextSelectionBlacklist(value) {
+        this.general.setTextSelectionBlacklist(value);
+    }
+
+    setCustomSelectionTools(tools) {
+        this.general.setCustomSelectionTools(tools);
     }
 
     setSidebarBehavior(behavior) {

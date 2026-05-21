@@ -26,10 +26,10 @@ export function createMessageEditControl({
         if (cancelActiveEdit) return;
 
         messageEl.classList.add('editing');
-        contentEl.style.display = 'none';
+        contentEl.hidden = true;
         const copyBtn = getCopyButton();
-        if (copyBtn) copyBtn.style.display = 'none';
-        editBtn.style.display = 'none';
+        if (copyBtn) copyBtn.hidden = true;
+        editBtn.hidden = true;
 
         const editor = document.createElement('div');
         editor.className = 'message-edit';
@@ -65,10 +65,10 @@ export function createMessageEditControl({
             document.removeEventListener('pointerdown', handleOutsidePointer, true);
             document.removeEventListener('keydown', handleDocumentKey, true);
             editor.remove();
-            contentEl.style.display = '';
+            contentEl.hidden = false;
             const nextCopyBtn = getCopyButton();
-            if (nextCopyBtn) nextCopyBtn.style.display = '';
-            editBtn.style.display = '';
+            if (nextCopyBtn) nextCopyBtn.hidden = false;
+            editBtn.hidden = false;
             messageEl.classList.remove('editing');
             cancelActiveEdit = null;
         };

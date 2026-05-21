@@ -23,6 +23,7 @@ describe('ShortcutManager', () => {
 
     beforeEach(async () => {
         vi.resetModules();
+        delete window.GeminiNexusPageGuard;
         storageChangeListener = null;
         globalThis.chrome = {
             storage: {
@@ -89,5 +90,63 @@ describe('ShortcutManager', () => {
         document.dispatchEvent(createKeyboardEvent('G', { ctrlKey: true }));
 
         expect(controller.showGlobalInput).toHaveBeenCalledWith();
+    });
+
+    it('starts local OCR capture for the configured shortcut', () => {
+        const event = createKeyboardEvent('O', { altKey: true });
+
+        document.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(true);
+        expect(chrome.runtime.sendMessage).toHaveBeenCalledWith({
+            action: 'INITIATE_CAPTURE',
+            mode: 'ocr',
+            source: 'local',
+        });
+    });
+
+    it('does not intercept page shortcuts while typing in editable fields', () => {
+        const input = document.createElement('input');
+        document.body.appendChild(input);
+        input.focus();
+        const event = createKeyboardEvent('B', { ctrlKey: true });
+        input.dispatchEvent(event);
+
+        expect(event.defaultPrevented).toBe(false);
+        expect(chrome.runtime.sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('shows toolbar feedback when opening the side panel fails', async () => {
+        chrome.runtime.sendMessage = vi.fn(() =>
+            Promise.resolve({ status: 'error', error: 'No side panel' })
+        );
+        const controller = {
+            showGlobalInput: vi.fn(),
+            showExtensionError: vi.fn(),
+        };
+        window.GeminiShortcuts.setController(controller);
+
+        document.dispatchEvent(createKeyboardEvent('S', { altKey: true }));
+        await Promise.resolve();
+
+        expect(controller.showExtensionError).toHaveBeenCalledWith('No side panel');
+    });
+
+    it('does not attach shortcut listeners when the page guard disables the content script', async () => {
+        vi.resetModules();
+        window.GeminiNexusPageGuard = { isDisabled: true, reason: 'mhtml' };
+        delete window.GeminiShortcuts;
+        const addEventListenerSpy = vi.spyOn(document, 'addEventListener');
+        chrome.storage.local.get.mockClear();
+        chrome.storage.onChanged.addListener.mockClear();
+        chrome.runtime.sendMessage.mockClear();
+
+        await installShortcuts();
+
+        expect(window.GeminiShortcuts).toBeUndefined();
+        expect(chrome.storage.local.get).not.toHaveBeenCalled();
+        expect(chrome.storage.onChanged.addListener).not.toHaveBeenCalled();
+        expect(addEventListenerSpy).not.toHaveBeenCalledWith('keydown', expect.any(Function), true);
+        addEventListenerSpy.mockRestore();
     });
 });

@@ -165,6 +165,29 @@ describe('prepareManagedContext', () => {
         });
     });
 
+    it('includes single legacy image markers in compression prompts', async () => {
+        await prepareManagedContext(
+            {
+                sessionId: 'session-1',
+                model: 'gemini-summary',
+                systemInstruction: '',
+            },
+            {
+                provider: 'official',
+                contextMode: 'summary',
+                contextRecentTurns: 1,
+                officialBaseUrl: 'https://example.com',
+                apiKey: 'key',
+                officialModel: 'gemini-main',
+            },
+            [user('', { image: 'data:image/png;base64,AAAA' })]
+        );
+
+        expect(sendOfficialMessage.mock.calls[0][0]).toContain(
+            'User: [empty] [1 image attachment(s)]'
+        );
+    });
+
     it('keeps native function-call history intact while sending official function responses', async () => {
         const history = [
             user('old user'),

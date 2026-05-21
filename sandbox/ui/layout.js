@@ -4,8 +4,8 @@ import {
     ChatTemplate,
     FooterTemplate,
     ViewerTemplate,
-    SettingsTemplate,
     TabSelectorTemplate,
+    SettingsModalTemplate,
 } from './templates/index.js';
 
 export function renderLayout() {
@@ -15,8 +15,8 @@ export function renderLayout() {
         ChatTemplate +
         FooterTemplate +
         ViewerTemplate +
-        SettingsTemplate +
-        TabSelectorTemplate;
+        TabSelectorTemplate +
+        SettingsModalTemplate;
     const app = document.getElementById('app');
     if (app) app.innerHTML = LayoutTemplate;
 }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     CONNECTION_STORAGE_KEYS,
     createConnectionSettingsPayload,
+    createConnectionStorageUpdate,
     createDefaultMcpServer,
     getConnectionProvider,
     getDefaultMcpUrlForTransport,
@@ -67,6 +68,37 @@ describe('connection settings helpers', () => {
         expect(CONNECTION_STORAGE_KEYS).toContain('geminiMcpServers');
     });
 
+    it('creates a shared storage update for connection saves', () => {
+        expect(
+            createConnectionStorageUpdate({
+                provider: 'openai',
+                openaiBaseUrl: 'https://api.example.test/v1',
+                openaiApiKey: 'sk-test',
+                openaiModel: 'gpt-5',
+                openaiUseResponsesApi: true,
+                openaiWebSearch: true,
+                mcpEnabled: true,
+                mcpServers: [{ id: 'srv', url: 'http://localhost/mcp' }],
+                mcpActiveServerId: 'srv',
+            })
+        ).toEqual(
+            expect.objectContaining({
+                geminiProvider: 'openai',
+                geminiUseOfficialApi: false,
+                geminiOpenaiBaseUrl: 'https://api.example.test/v1',
+                geminiOpenaiApiKey: 'sk-test',
+                geminiOpenaiModel: 'gpt-5',
+                geminiOpenaiUseResponsesApi: true,
+                geminiOpenaiWebSearch: true,
+                geminiMcpEnabled: true,
+                geminiMcpTransport: 'streamable-http',
+                geminiMcpServerUrl: '',
+                geminiMcpServers: [{ id: 'srv', url: 'http://localhost/mcp' }],
+                geminiMcpActiveServerId: 'srv',
+            })
+        );
+    });
+
     it('creates default MCP server data and transport-specific URLs', () => {
         expect(createDefaultMcpServer('srv_test')).toEqual({
             id: 'srv_test',
@@ -81,5 +113,12 @@ describe('connection settings helpers', () => {
         expect(getDefaultMcpUrlForTransport('ws')).toBe('ws://127.0.0.1:3006/mcp');
         expect(getDefaultMcpUrlForTransport('streamable-http')).toBe('http://127.0.0.1:3006/mcp');
         expect(getDefaultMcpUrlForTransport('sse')).toBe('http://127.0.0.1:3006/sse');
+    });
+
+    it('uses the shared readable ID factory for default MCP server IDs', () => {
+        const server = createDefaultMcpServer();
+
+        expect(server.id).toMatch(/^srv_[A-Z0-9-]+$/);
+        expect(server.id).not.toMatch(/^srv_\d+$/);
     });
 });

@@ -1,4 +1,4 @@
-import { cropImage } from '../../shared/dom/crop_utils.js';
+import { cropImage } from '../../shared/dom/crop_image.js';
 import { WatermarkRemover } from '../../shared/media/watermark_remover.js';
 import { t } from '../core/i18n.js';
 
@@ -27,11 +27,11 @@ export async function handleGeneratedImageFetchResult(request) {
         }
 
         img.classList.remove('loading');
-        img.style.minHeight = 'auto';
         return;
     }
 
-    img.style.background = '#ffebee';
+    img.classList.remove('loading');
+    img.classList.add('load-error');
     img.alt = 'Failed to load image';
     console.warn('Generated image load failed:', request.error);
 }

@@ -26,9 +26,10 @@ describe('message media helpers', () => {
         const images = grid.querySelectorAll('img');
 
         expect(grid.className).toBe('user-images-grid');
+        expect(grid.hasAttribute('style')).toBe(false);
         expect(images).toHaveLength(2);
-        expect(images[0].className).toBe('chat-image');
-        expect(images[0].style.maxWidth).toBe('150px');
+        expect(images[0].className).toBe('chat-image chat-image-compact');
+        expect(images[0].hasAttribute('style')).toBe(false);
 
         images[0].dispatchEvent(new Event('click'));
 

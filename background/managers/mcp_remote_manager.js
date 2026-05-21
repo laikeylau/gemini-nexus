@@ -12,31 +12,20 @@ import { filterToolsForPreamble, formatToolsPreamble } from './mcp/preamble.js';
 import { getActiveMcpServers, parseToolId, tagToolsForServer } from './mcp/server_tools.js';
 import { readSseStream } from './mcp/sse_stream.js';
 import {
-    clearListCache,
     listPromptsForConnection,
     listResourceTemplatesForConnection,
     listResourcesForConnection,
     listToolsForConnection,
 } from './mcp/tool_listing.js';
-import {
-    handleIncomingRpcMessage,
-    sendNotification,
-    terminateStreamableHttpSession,
-} from './mcp/rpc_messages.js';
+import { handleIncomingRpcMessage } from './mcp/rpc_messages.js';
 import { isStreamableHttpFallbackError, sendStreamableHttpRpc } from './mcp/streamable_http.js';
-
-const DEFAULT_PROTOCOL_VERSIONS = [
-    '2025-11-25',
-    '2025-06-18',
-    '2025-03-26',
-    '2024-11-05',
-    '2024-10-07',
-    '2024-06-20',
-];
-
-function sleep(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { initializeMcpHandshake } from './mcp/handshake.js';
+import {
+    bumpMcpIdleClose,
+    createMcpConnectionState,
+    disconnectMcpConnectionState,
+    rejectPendingMcpRequests,
+} from './mcp/connection_state.js';
 
 export class McpRemoteManager {
     constructor({ clientName = 'gemini-nexus', clientVersion = '0.0.0' } = {}) {
@@ -46,30 +35,6 @@ export class McpRemoteManager {
         // Multi-connection support: Map<serverId, ConnectionState>
         this.connections = new Map();
         this.nextId = 1;
-    }
-
-    // Create a fresh connection state object
-    _createConnectionState() {
-        return {
-            transport: null,
-            ws: null,
-            configKey: null,
-            pending: new Map(),
-            initialized: false,
-            listCaches: new Map(),
-            idleCloseTimer: null,
-            sseAbort: null,
-            ssePostUrl: null,
-            sseReaderTask: null,
-            httpPostUrl: null,
-            headers: {},
-            sessionId: null,
-            protocolVersion: null,
-            serverCapabilities: {},
-            serverInfo: null,
-            instructions: '',
-            _resolveSseEndpoint: null,
-        };
     }
 
     isEnabled(config) {
@@ -95,7 +60,7 @@ export class McpRemoteManager {
             }
         } else {
             // Disconnect all
-            for (const [id, conn] of this.connections.entries()) {
+            for (const conn of this.connections.values()) {
                 this._disconnectState(conn);
             }
             this.connections.clear();
@@ -103,39 +68,7 @@ export class McpRemoteManager {
     }
 
     _disconnectState(conn) {
-        if (conn.idleCloseTimer) {
-            clearTimeout(conn.idleCloseTimer);
-            conn.idleCloseTimer = null;
-        }
-        this._clearPending(conn, new Error('MCP connection closed'));
-        clearListCache(conn);
-        terminateStreamableHttpSession(conn);
-        conn.initialized = false;
-        conn.configKey = null;
-        conn.transport = null;
-
-        if (conn.ws) {
-            try {
-                conn.ws.close();
-            } catch {}
-        }
-        conn.ws = null;
-
-        if (conn.sseAbort) {
-            try {
-                conn.sseAbort.abort();
-            } catch {}
-        }
-        conn.sseAbort = null;
-        conn.ssePostUrl = null;
-        conn.sseReaderTask = null;
-        conn.httpPostUrl = null;
-        conn.headers = {};
-        conn.sessionId = null;
-        conn.protocolVersion = null;
-        conn.serverCapabilities = {};
-        conn.serverInfo = null;
-        conn.instructions = '';
+        disconnectMcpConnectionState(conn);
     }
 
     _resolvePendingRpcMessage(conn, msg) {
@@ -150,26 +83,12 @@ export class McpRemoteManager {
         else entry.resolve(msg.result);
     }
 
-    _clearIdleTimer(conn) {
-        if (conn.idleCloseTimer) {
-            clearTimeout(conn.idleCloseTimer);
-            conn.idleCloseTimer = null;
-        }
-    }
-
     _bumpIdleClose(conn, serverId) {
-        this._clearIdleTimer(conn);
-        conn.idleCloseTimer = setTimeout(() => {
-            this.disconnect(serverId).catch(() => {});
-        }, 120000);
+        bumpMcpIdleClose(conn, () => this.disconnect(serverId).catch(() => {}));
     }
 
     _clearPending(conn, error) {
-        for (const [id, entry] of conn.pending.entries()) {
-            clearTimeout(entry.timeout);
-            entry.reject(error);
-            conn.pending.delete(id);
-        }
+        rejectPendingMcpRequests(conn, error);
     }
 
     async _sendRpc(conn, method, params) {
@@ -235,7 +154,7 @@ export class McpRemoteManager {
     // Get or create connection for a server
     _getOrCreateConnection(serverId) {
         if (!this.connections.has(serverId)) {
-            this.connections.set(serverId, this._createConnectionState());
+            this.connections.set(serverId, createMcpConnectionState());
         }
         return this.connections.get(serverId);
     }
@@ -438,51 +357,11 @@ export class McpRemoteManager {
     }
 
     async _initializeHandshake(conn) {
-        let lastError = null;
-        for (const protocolVersion of DEFAULT_PROTOCOL_VERSIONS) {
-            try {
-                const result = await this._sendRpc(conn, 'initialize', {
-                    protocolVersion,
-                    capabilities: {},
-                    clientInfo: { name: this.clientName, version: this.clientVersion },
-                });
-
-                const selectedProtocolVersion =
-                    result && typeof result.protocolVersion === 'string'
-                        ? result.protocolVersion
-                        : protocolVersion;
-                if (!DEFAULT_PROTOCOL_VERSIONS.includes(selectedProtocolVersion)) {
-                    throw new Error(`Unsupported MCP protocol version: ${selectedProtocolVersion}`);
-                }
-
-                conn.protocolVersion = selectedProtocolVersion;
-                conn.serverCapabilities =
-                    result && result.capabilities && typeof result.capabilities === 'object'
-                        ? result.capabilities
-                        : {};
-                conn.serverInfo =
-                    result && result.serverInfo && typeof result.serverInfo === 'object'
-                        ? result.serverInfo
-                        : null;
-                conn.instructions =
-                    result && typeof result.instructions === 'string' ? result.instructions : '';
-                sendNotification(conn, 'notifications/initialized', {});
-                conn.initialized = true;
-                return;
-            } catch (error) {
-                lastError = error;
-                if (isStreamableHttpFallbackError(error)) throw error;
-                if (
-                    error &&
-                    typeof error.message === 'string' &&
-                    error.message.startsWith('Unsupported MCP protocol version:')
-                ) {
-                    throw error;
-                }
-                await sleep(150);
-            }
-        }
-        throw lastError || new Error('Failed to initialize MCP connection');
+        return initializeMcpHandshake(conn, {
+            clientName: this.clientName,
+            clientVersion: this.clientVersion,
+            sendRpc: (method, params) => this._sendRpc(conn, method, params),
+        });
     }
 
     async _listToolsForConnection(conn) {

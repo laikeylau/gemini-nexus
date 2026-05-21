@@ -6,6 +6,8 @@
         "sidepanel/preload.js",
         "sandbox/index.html",
         "sandbox/index.js",
+        "settings/index.html",
+        "settings/index.js",
         "content/**/*.js",
         "shared/ui/**/*.js",
         "shared/dom/**/*.js",

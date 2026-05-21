@@ -186,4 +186,40 @@ describe('ToolbarDispatcher', () => {
         expect(controller.ui.showAskWindow).toHaveBeenCalledWith(rect, null, 'Image tools');
         expect(controller.ui.showError).toHaveBeenCalledWith('Could not read image.');
     });
+
+    it('dispatches custom selection tools with the current selection', async () => {
+        const controller = {
+            ui: {
+                getSelectedModel: vi.fn(() => 'gemini-3-pro'),
+            },
+            actions: {
+                handleCustomSelectionTool: vi.fn(),
+            },
+            imageDetector: {},
+            inputManager: {},
+            currentSelection: 'Selected text',
+            lastRect: { left: 1, top: 2 },
+            lastMousePoint: { x: 4, y: 8 },
+            lastSessionId: 'previous-session',
+        };
+        const tool = {
+            id: 'formal',
+            name: 'Formal',
+            prompt: 'Rewrite: {text}',
+        };
+
+        await new window.GeminiToolbarDispatcher(controller).dispatch(
+            'custom_selection_tool',
+            tool
+        );
+
+        expect(controller.lastSessionId).toBeNull();
+        expect(controller.actions.handleCustomSelectionTool).toHaveBeenCalledWith(
+            tool,
+            'Selected text',
+            { left: 1, top: 2 },
+            'gemini-3-pro',
+            { x: 4, y: 8 }
+        );
+    });
 });

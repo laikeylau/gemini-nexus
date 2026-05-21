@@ -64,6 +64,12 @@ export function getImageAttachmentDataUrls(attachments) {
         .map((attachment) => attachment.base64);
 }
 
+export function normalizeMessageImages(image) {
+    if (!image) return [];
+    const images = Array.isArray(image) ? image : [image];
+    return images.filter(Boolean);
+}
+
 export function getAttachmentDataUrls(attachments) {
     return normalizeUserAttachments(attachments).map((attachment) => attachment.base64);
 }
@@ -91,4 +97,29 @@ export function attachmentToInlineData(attachment) {
             attachment.type || getDataUrlMime(attachment.base64) || 'application/octet-stream',
         data,
     };
+}
+
+export function describeMessageAttachmentMarkers(message) {
+    const markers = [];
+    const userAttachmentCounts = countUserAttachmentsByType(message?.attachments);
+    const legacyImages =
+        userAttachmentCounts.images === 0 && userAttachmentCounts.files === 0
+            ? normalizeMessageImages(message?.image).length
+            : 0;
+    const imageCount = userAttachmentCounts.images + legacyImages;
+
+    if (imageCount > 0) {
+        markers.push(`[${imageCount} image attachment(s)]`);
+    }
+    if (userAttachmentCounts.files > 0) {
+        markers.push(`[${userAttachmentCounts.files} file attachment(s)]`);
+    }
+    if (Array.isArray(message?.generatedImages) && message.generatedImages.length > 0) {
+        markers.push(`[${message.generatedImages.length} generated image(s)]`);
+    }
+    if (Array.isArray(message?.sources) && message.sources.length > 0) {
+        markers.push(`[${message.sources.length} source link(s)]`);
+    }
+
+    return markers;
 }

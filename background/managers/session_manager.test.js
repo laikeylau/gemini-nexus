@@ -106,6 +106,7 @@ describe('GeminiSessionManager cancellation', () => {
     });
 
     it('clears stale Web auth context and prompts login when request tokens are unavailable', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
         getConnectionSettings.mockResolvedValue({ provider: 'web' });
         const manager = new GeminiSessionManager();
         manager.ensureInitialized = vi.fn(async () => {});
@@ -135,5 +136,7 @@ describe('GeminiSessionManager cancellation', () => {
             })
         );
         expect(result.text).toContain('gemini.google.com/u/0/');
+        expect(result.text).toContain('class="gemini-auth-link"');
+        expect(result.text).not.toContain('style=');
     });
 });

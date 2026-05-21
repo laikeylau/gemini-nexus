@@ -45,8 +45,10 @@ describe('createMessageEditControl', () => {
 
         expect(onEdit).toHaveBeenCalledWith('Updated text');
         expect(messageEl.querySelector('.message-edit')).toBeNull();
-        expect(contentEl.style.display).toBe('');
-        expect(copyButton.style.display).toBe('');
+        expect(contentEl.hidden).toBe(false);
+        expect(copyButton.hidden).toBe(false);
+        expect(contentEl.hasAttribute('style')).toBe(false);
+        expect(copyButton.hasAttribute('style')).toBe(false);
         expect(messageEl.classList.contains('editing')).toBe(false);
     });
 
@@ -59,7 +61,8 @@ describe('createMessageEditControl', () => {
         control.cancel();
 
         expect(messageEl.querySelector('.message-edit')).toBeNull();
-        expect(contentEl.style.display).toBe('');
+        expect(contentEl.hidden).toBe(false);
+        expect(contentEl.hasAttribute('style')).toBe(false);
         expect(messageEl.classList.contains('editing')).toBe(false);
     });
 });

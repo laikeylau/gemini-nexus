@@ -10,6 +10,7 @@ import {
     DEFAULT_STORED_GEMINI_MODEL,
     DEFAULT_THINKING_LEVEL,
 } from '../config/constants.js';
+import { createPrefixedId } from '../utils/index.js';
 import { normalizeOpenAIWebSearchSettings } from './openai.js';
 
 export const CONNECTION_STORAGE_KEYS = [
@@ -100,6 +101,29 @@ export function createConnectionSettingsPayload(data = {}, options = {}) {
     };
 }
 
+export function createConnectionStorageUpdate(payload = {}) {
+    return {
+        geminiProvider: payload.provider,
+        geminiUseOfficialApi: payload.provider === 'official',
+        geminiOfficialBaseUrl: payload.officialBaseUrl || DEFAULT_OFFICIAL_BASE_URL,
+        geminiApiKey: payload.apiKey || '',
+        geminiOfficialModel: payload.officialModel || DEFAULT_OFFICIAL_MODELS,
+        geminiThinkingLevel: payload.thinkingLevel || DEFAULT_THINKING_LEVEL,
+        geminiOfficialWebSearch: payload.officialWebSearch === true,
+        geminiOpenaiBaseUrl: payload.openaiBaseUrl || '',
+        geminiOpenaiApiKey: payload.openaiApiKey || '',
+        geminiOpenaiModel: payload.openaiModel || '',
+        geminiOpenaiThinkingLevel: payload.openaiThinkingLevel || DEFAULT_THINKING_LEVEL,
+        geminiOpenaiUseResponsesApi: payload.openaiUseResponsesApi === true,
+        geminiOpenaiWebSearch: payload.openaiWebSearch === true,
+        geminiMcpEnabled: payload.mcpEnabled === true,
+        geminiMcpTransport: payload.mcpTransport || DEFAULT_MCP_TRANSPORT,
+        geminiMcpServerUrl: payload.mcpServerUrl || '',
+        geminiMcpServers: Array.isArray(payload.mcpServers) ? payload.mcpServers : [],
+        geminiMcpActiveServerId: payload.mcpActiveServerId || null,
+    };
+}
+
 export function getDefaultMcpUrlForTransport(transport) {
     const normalized = String(transport || DEFAULT_MCP_TRANSPORT).toLowerCase();
     if (normalized === 'ws' || normalized === 'websocket') return DEFAULT_MCP_WS_URL;
@@ -109,7 +133,7 @@ export function getDefaultMcpUrlForTransport(transport) {
     return DEFAULT_MCP_SSE_URL;
 }
 
-export function createDefaultMcpServer(id = `srv_${Date.now()}`) {
+export function createDefaultMcpServer(id = createPrefixedId('srv')) {
     return {
         id,
         name: 'Local Proxy',

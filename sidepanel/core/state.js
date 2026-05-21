@@ -8,6 +8,8 @@ import {
     createConnectionSettingsPayload,
 } from '../../shared/settings/connection.js';
 
+const CONNECTION_STORAGE_KEY_SET = new Set(CONNECTION_STORAGE_KEYS);
+
 export function getOwnerTabIdFromLocation(locationLike = window.location) {
     try {
         const url = new URL(locationLike.href);
@@ -41,6 +43,7 @@ export class StateManager {
                 'geminiSidebarBehavior',
                 'geminiSidePanelScope',
                 'geminiTextSelectionEnabled',
+                'geminiTextSelectionBlacklist',
                 'geminiImageToolsEnabled',
                 'geminiAccountIndices',
                 ...CONNECTION_STORAGE_KEYS,
@@ -68,13 +71,18 @@ export class StateManager {
         }
 
         chrome.storage.onChanged.addListener((changes, areaName) => {
-            if (areaName !== 'session' || !changes.geminiSidePanelSessionBindings) return;
+            if (areaName === 'session' && changes.geminiSidePanelSessionBindings) {
+                this.sessionData = {
+                    geminiSidePanelSessionBindings:
+                        changes.geminiSidePanelSessionBindings.newValue || {},
+                };
+                this.postCurrentTabContext();
+                return;
+            }
 
-            this.sessionData = {
-                geminiSidePanelSessionBindings:
-                    changes.geminiSidePanelSessionBindings.newValue || {},
-            };
-            this.postCurrentTabContext();
+            if (areaName === 'local') {
+                this.syncLocalStorageChanges(changes);
+            }
         });
 
         chrome.tabs.onActivated.addListener(({ tabId }) => {
@@ -176,6 +184,10 @@ export class StateManager {
             payload: this.data.geminiTextSelectionEnabled !== false,
         });
         this.frame.postMessage({
+            action: 'RESTORE_TEXT_SELECTION_BLACKLIST',
+            payload: this.data.geminiTextSelectionBlacklist || '',
+        });
+        this.frame.postMessage({
             action: 'RESTORE_IMAGE_TOOLS',
             payload: this.data.geminiImageToolsEnabled !== false,
         });
@@ -222,6 +234,99 @@ export class StateManager {
 
         this.frame.postMessage({ action: 'RESTORE_LANGUAGE', payload: cachedLang });
         this.frame.postMessage({ action: 'RESTORE_THEME', payload: cachedTheme });
+    }
+
+    syncLocalStorageChanges(changes) {
+        if (!this.data) return;
+
+        const changedKeys = Object.keys(changes);
+        for (const key of changedKeys) {
+            const newValue = changes[key].newValue;
+            if (newValue === undefined) delete this.data[key];
+            else this.data[key] = newValue;
+        }
+
+        if (!this.hasInitialized) return;
+
+        const hasChanged = (key) => Object.prototype.hasOwnProperty.call(changes, key);
+
+        if (hasChanged('geminiShortcuts')) {
+            this.frame.postMessage({
+                action: 'RESTORE_SHORTCUTS',
+                payload: this.data.geminiShortcuts || null,
+            });
+        }
+
+        if (hasChanged('geminiTheme')) {
+            const theme = this.data.geminiTheme || 'system';
+            localStorage.setItem('geminiTheme', theme);
+            this.frame.postMessage({ action: 'RESTORE_THEME', payload: theme });
+        }
+
+        if (hasChanged('geminiLanguage')) {
+            const language = this.data.geminiLanguage || 'system';
+            localStorage.setItem('geminiLanguage', language);
+            this.frame.postMessage({ action: 'RESTORE_LANGUAGE', payload: language });
+        }
+
+        if (hasChanged('geminiSidebarBehavior')) {
+            this.frame.postMessage({
+                action: 'RESTORE_SIDEBAR_BEHAVIOR',
+                payload: this.data.geminiSidebarBehavior || 'auto',
+            });
+        }
+
+        if (hasChanged('geminiSidePanelScope')) {
+            this.frame.postMessage({
+                action: 'RESTORE_SIDE_PANEL_SCOPE',
+                payload: this.data.geminiSidePanelScope || DEFAULT_SIDE_PANEL_SCOPE,
+            });
+        }
+
+        if (hasChanged('geminiContextMode') || hasChanged('geminiContextRecentTurns')) {
+            this.frame.postMessage({
+                action: 'RESTORE_CONTEXT_SETTINGS',
+                payload: {
+                    mode: this.data.geminiContextMode || DEFAULT_CONTEXT_MODE,
+                    recentTurns: this.data.geminiContextRecentTurns || DEFAULT_CONTEXT_RECENT_TURNS,
+                },
+            });
+        }
+
+        if (hasChanged('geminiTextSelectionEnabled')) {
+            this.frame.postMessage({
+                action: 'RESTORE_TEXT_SELECTION',
+                payload: this.data.geminiTextSelectionEnabled !== false,
+            });
+        }
+
+        if (hasChanged('geminiTextSelectionBlacklist')) {
+            this.frame.postMessage({
+                action: 'RESTORE_TEXT_SELECTION_BLACKLIST',
+                payload: this.data.geminiTextSelectionBlacklist || '',
+            });
+        }
+
+        if (hasChanged('geminiImageToolsEnabled')) {
+            this.frame.postMessage({
+                action: 'RESTORE_IMAGE_TOOLS',
+                payload: this.data.geminiImageToolsEnabled !== false,
+            });
+        }
+
+        if (hasChanged('geminiAccountIndices')) {
+            this.frame.postMessage({
+                action: 'RESTORE_ACCOUNT_INDICES',
+                payload: this.data.geminiAccountIndices || '0',
+            });
+        }
+
+        if (changedKeys.some((key) => CONNECTION_STORAGE_KEY_SET.has(key))) {
+            this.frame.postMessage({
+                action: 'RESTORE_CONNECTION_SETTINGS',
+                payload: createConnectionSettingsPayload(this.data),
+            });
+        }
     }
 
     updateSessions(sessions) {

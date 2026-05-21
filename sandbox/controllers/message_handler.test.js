@@ -20,7 +20,7 @@ vi.mock('../render/context_compression.js', () => ({
     appendContextCompressionNotice: vi.fn(),
 }));
 
-vi.mock('../../shared/dom/crop_utils.js', () => ({
+vi.mock('../../shared/dom/crop_image.js', () => ({
     cropImage: vi.fn(),
 }));
 

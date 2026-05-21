@@ -14,6 +14,11 @@ function isUnavailableWebAuthError(message = '') {
     );
 }
 
+function createGeminiAuthLink(accountIndex) {
+    const href = `https://gemini.google.com/u/${accountIndex}/`;
+    return `<a href="${href}" target="_blank" class="gemini-auth-link">gemini.google.com/u/${accountIndex}/</a>`;
+}
+
 export class GeminiSessionManager {
     constructor() {
         this.auth = new AuthManager();
@@ -100,10 +105,11 @@ export class GeminiSessionManager {
                 await chrome.storage.local.remove(['geminiContext']);
 
                 const currentIndex = this.auth.getCurrentIndex();
+                const authLink = createGeminiAuthLink(currentIndex);
                 if (isZh) {
-                    errorMessage = `账号 (Index: ${currentIndex}) 未登录、会话已过期或 Gemini Web 请求参数不可用。请前往 <a href="https://gemini.google.com/u/${currentIndex}/" target="_blank" style="color: inherit; text-decoration: underline;">gemini.google.com/u/${currentIndex}/</a> 登录或刷新 Gemini 页面。`;
+                    errorMessage = `账号 (Index: ${currentIndex}) 未登录、会话已过期或 Gemini Web 请求参数不可用。请前往 ${authLink} 登录或刷新 Gemini 页面。`;
                 } else {
-                    errorMessage = `Account (Index: ${currentIndex}) is not logged in, the session expired, or Gemini Web request parameters are unavailable. Please log in at <a href="https://gemini.google.com/u/${currentIndex}/" target="_blank" style="color: inherit; text-decoration: underline;">gemini.google.com/u/${currentIndex}/</a> or refresh Gemini.`;
+                    errorMessage = `Account (Index: ${currentIndex}) is not logged in, the session expired, or Gemini Web request parameters are unavailable. Please log in at ${authLink} or refresh Gemini.`;
                 }
             } else if (errorMessage.includes('429') || errorMessage.includes('Too Many Requests')) {
                 errorMessage = isZh

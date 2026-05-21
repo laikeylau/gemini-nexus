@@ -22,9 +22,7 @@ export async function copyToClipboard(text) {
     textArea.value = text;
 
     // Keep it in the DOM for execCommand while remaining invisible.
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-9999px';
-    textArea.style.top = '0';
+    textArea.className = 'clipboard-staging-input';
     document.body.appendChild(textArea);
 
     textArea.focus();

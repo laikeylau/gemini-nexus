@@ -1,5 +1,5 @@
 (function () {
-    const Utils = window.GeminiViewUtils;
+    const Layout = window.GeminiViewLayout;
     const ICONS = window.GeminiToolbarIcons;
     const WINDOW_SIZE_STORAGE_KEY = 'gemini_nexus_window_size';
 
@@ -124,6 +124,7 @@
                 resultText: this.elements.resultText,
                 askWindow: this.elements.askWindow,
             });
+            this.translationTargets = new window.GeminiTranslationTargetView(this.elements);
         }
 
         async show(rect, contextText, title, resetDrag = null, mousePoint = null) {
@@ -145,7 +146,7 @@
                 this.undockWindow();
             }
 
-            Utils.positionElement(this.elements.askWindow, rect, true, mousePoint);
+            Layout.positionElement(this.elements.askWindow, rect, true, mousePoint);
 
             // Reset Content
             this.elements.windowTitle.textContent = title || getDefaultTitle();
@@ -158,6 +159,7 @@
 
             this.elements.askInput.value = '';
             this.elements.resultText.innerHTML = '';
+            this.translationTargets.hide();
 
             // Hide Footer initially
             if (this.elements.windowFooter) this.elements.windowFooter.classList.add('hidden');
@@ -176,9 +178,7 @@
             if (msg) {
                 this.elements.resultText.innerHTML = '';
                 const loading = document.createElement('div');
-                loading.style.color = '#888';
-                loading.style.fontStyle = 'italic';
-                loading.style.marginTop = '10px';
+                loading.className = 'gemini-loading-message';
                 loading.textContent = msg;
                 this.elements.resultText.appendChild(loading);
             } else {
@@ -270,26 +270,46 @@
             if (this.elements.askInput) this.elements.askInput.value = text;
         }
 
-        dockWindow(side, top) {
-            const el = this.elements.askWindow;
-            if (!el) return;
-            el.style.transform = '';
-            el.setAttribute('data-dock', side);
-            el.style.top = `${top}px`;
-            if (side === 'left') {
-                el.style.left = '0';
-                el.style.right = 'auto';
+        setTranslationTargetsVisible(visible) {
+            if (visible) {
+                this.translationTargets.show();
             } else {
-                el.style.left = 'auto';
-                el.style.right = '0';
+                this.translationTargets.hide();
+            }
+        }
+
+        toggleTranslationTargetDropdown() {
+            this.translationTargets.toggleDropdown();
+        }
+
+        getSelectedTranslationTargets() {
+            return this.translationTargets.getSelected();
+        }
+
+        setSelectedTranslationTargets(targets) {
+            this.translationTargets.setSelected(targets);
+        }
+
+        dockWindow(side, top) {
+            const askWindow = this.elements.askWindow;
+            if (!askWindow) return;
+            askWindow.style.transform = '';
+            askWindow.setAttribute('data-dock', side);
+            askWindow.style.top = `${top}px`;
+            if (side === 'left') {
+                askWindow.style.left = '0';
+                askWindow.style.right = 'auto';
+            } else {
+                askWindow.style.left = 'auto';
+                askWindow.style.right = '0';
             }
         }
 
         undockWindow() {
-            const el = this.elements.askWindow;
-            if (el) {
-                el.removeAttribute('data-dock');
-                el.style.transform = '';
+            const askWindow = this.elements.askWindow;
+            if (askWindow) {
+                askWindow.removeAttribute('data-dock');
+                askWindow.style.transform = '';
             }
         }
 

@@ -7,6 +7,7 @@ import {
     collectUnexpectedSourceFilenames,
     countCodeLines,
     exists,
+    readJson,
     readProjectFile,
 } from './project-structure/helpers.js';
 
@@ -28,7 +29,8 @@ describe('project structure', () => {
         const capabilityModules = [
             'shared/attachments/index.js',
             'shared/config/constants.js',
-            'shared/dom/crop_utils.js',
+            'shared/dom/crop_image.js',
+            'shared/logging/debug.js',
             'shared/mcp/transport.js',
             'shared/media/watermark_remover.js',
             'shared/messaging/index.js',
@@ -81,8 +83,24 @@ describe('project structure', () => {
         );
     });
 
+    it('keeps local tool drafts out of tracked project docs', async () => {
+        const gitignore = await readProjectFile('.gitignore');
+
+        expect(gitignore).toContain('.trellis/');
+        await expect(exists('.trellis/spec/backend/quality-guidelines.md')).resolves.toBe(false);
+        await expect(exists('.trellis/spec/frontend/component-guidelines.md')).resolves.toBe(false);
+        await expect(exists('docs/project-guidelines/backend-quality.md')).resolves.toBe(true);
+        await expect(exists('docs/project-guidelines/frontend-components.md')).resolves.toBe(true);
+    });
+
+    it('keeps CSS layout regression tests next to CSS ownership', async () => {
+        await expect(exists('css/settings_layout.test.js')).resolves.toBe(true);
+        await expect(exists('test/ui/settings_layout.test.js')).resolves.toBe(false);
+    });
+
     it('keeps MCP manager helpers split from the connection state machine', async () => {
         const helperModules = [
+            'background/managers/mcp/handshake.js',
             'background/managers/mcp/transport.js',
             'background/managers/mcp/tool_result.js',
             'background/managers/mcp/preamble.js',
@@ -91,6 +109,7 @@ describe('project structure', () => {
             'background/managers/mcp/streamable_http.js',
             'background/managers/mcp/rpc_messages.js',
             'background/managers/mcp/tool_listing.js',
+            'background/managers/mcp/connection_state.js',
         ];
 
         for (const modulePath of helperModules) {
@@ -98,6 +117,7 @@ describe('project structure', () => {
         }
 
         const manager = await readProjectFile('background/managers/mcp_remote_manager.js');
+        expect(manager).toContain("from './mcp/handshake.js'");
         expect(manager).toContain("from './mcp/transport.js'");
         expect(manager).toContain("from './mcp/tool_result.js'");
         expect(manager).toContain("from './mcp/preamble.js'");
@@ -106,9 +126,11 @@ describe('project structure', () => {
         expect(manager).toContain("from './mcp/streamable_http.js'");
         expect(manager).toContain("from './mcp/rpc_messages.js'");
         expect(manager).toContain("from './mcp/tool_listing.js'");
+        expect(manager).toContain("from './mcp/connection_state.js'");
+        expect(manager).not.toMatch(/\b_createConnectionState\s*\(/);
         expect(manager).not.toContain('DEBUG_MCP_REMOTE');
         expect(manager).not.toContain('debugMcpRemote');
-        expect(countCodeLines(manager)).toBeLessThan(540);
+        expect(countCodeLines(manager)).toBeLessThan(510);
     });
 
     it('documents current shared and directory entrypoint conventions', async () => {
@@ -116,6 +138,7 @@ describe('project structure', () => {
         const chineseReadme = await readProjectFile('README.zh-CN.md');
 
         expect(readme).toContain('shared/ui/');
+        expect(readme).toContain('shared/logging/');
         await expect(exists('README.zh-CN.md')).resolves.toBe(true);
         expect(readme).toContain('README.zh-CN.md');
         expect(readme).toContain('### Project Overview');
@@ -123,6 +146,7 @@ describe('project structure', () => {
         expect(readme).toContain(
             'The repository root is the runnable Chrome extension project root.'
         );
+        expect(readme).toContain('settings/index.js');
         expect(readme).not.toContain('## 中文');
         expect(readme).not.toContain('### 项目简介');
         expect(readme).not.toContain('### 快速开始');
@@ -131,20 +155,87 @@ describe('project structure', () => {
 
         expect(chineseReadme).toContain('README.md');
         expect(chineseReadme).toContain('shared/ui/');
+        expect(chineseReadme).toContain('shared/logging/');
         expect(chineseReadme).toContain('### 项目简介');
         expect(chineseReadme).toContain('### 快速开始');
         expect(chineseReadme).toContain('不再保留顶层 `shared/*.js` 兼容入口');
         expect(chineseReadme).toContain('模块目录的聚合入口统一使用目录内 `index.js`');
         expect(chineseReadme).toContain('运行域入口保留为各运行域根部的 `index.js`');
+        expect(chineseReadme).toContain('settings/index.js');
         expect(chineseReadme).toContain('运行时代码文件使用 `snake_case`');
         expect(chineseReadme).not.toContain('## English');
         expect(chineseReadme).not.toContain('### Project Overview');
         expect(chineseReadme).not.toContain('### Quick Start');
     });
 
+    it('names shared DOM crop entry points by their runtime shape', async () => {
+        await expect(exists('shared/dom/crop_global.js')).resolves.toBe(true);
+        await expect(exists('shared/dom/crop_image.js')).resolves.toBe(true);
+        await expect(exists('shared/dom/crop_core.js')).resolves.toBe(false);
+        await expect(exists('shared/dom/crop_utils.js')).resolves.toBe(false);
+
+        const manifest = await readJson('manifest.json');
+        const listedFiles = manifest.content_scripts.flatMap((entry) => entry.js ?? []);
+        const cropModule = await readProjectFile('shared/dom/crop_image.js');
+
+        expect(listedFiles).toContain('shared/dom/crop_global.js');
+        expect(listedFiles).not.toContain('shared/dom/crop_core.js');
+        expect(cropModule).toContain("import './crop_global.js'");
+    });
+
+    it('keeps session prompt helpers named by responsibility', async () => {
+        await expect(exists('background/handlers/session/active_tab_content.js')).resolves.toBe(
+            true
+        );
+        await expect(
+            exists('background/handlers/session/official_function_response.js')
+        ).resolves.toBe(true);
+        await expect(exists('background/handlers/session/utils.js')).resolves.toBe(false);
+
+        const promptHandler = await readProjectFile(
+            'background/handlers/session/prompt_handler.js'
+        );
+        const promptBuilder = await readProjectFile(
+            'background/handlers/session/prompt/builder.js'
+        );
+        const toolExecutor = await readProjectFile(
+            'background/handlers/session/prompt/tool_executor.js'
+        );
+
+        expect(promptHandler).toContain("from './official_function_response.js'");
+        expect(promptHandler).toContain("from '../../../shared/text/tool_call_text.js'");
+        expect(promptBuilder).toContain("from '../active_tab_content.js'");
+        expect(toolExecutor).toContain("from '../../../../shared/text/tool_call_text.js'");
+    });
+
+    it('names browser-control action helpers by behavior', async () => {
+        await expect(exists('background/control/action_waiter.js')).resolves.toBe(true);
+        await expect(exists('background/control/wait_helper.js')).resolves.toBe(false);
+        await expect(
+            exists('background/control/actions/observation/script_evaluation.js')
+        ).resolves.toBe(true);
+        await expect(exists('background/control/actions/observation/script.js')).resolves.toBe(
+            false
+        );
+
+        const actionsIndex = await readProjectFile('background/control/actions/index.js');
+        const baseAction = await readProjectFile('background/control/actions/base.js');
+        const observation = await readProjectFile(
+            'background/control/actions/observation/index.js'
+        );
+
+        expect(actionsIndex).toContain("from '../action_waiter.js'");
+        expect(actionsIndex).toContain('new ActionWaiter');
+        expect(baseAction).toContain("from '../action_waiter.js'");
+        expect(baseAction).toContain('new ActionWaiter');
+        expect(observation).toContain("from './script_evaluation.js'");
+        expect(observation).toContain('ScriptEvaluationActions');
+    });
+
     it('keeps sandbox page styles split by UI surface', async () => {
         const sandboxHtml = await readProjectFile('sandbox/index.html');
         const sidepanelHtml = await readProjectFile('sidepanel/index.html');
+        const settingsHtml = await readProjectFile('settings/index.html');
         const componentStyles = await readProjectFile('css/components.css');
         const chatStyles = await readProjectFile('css/chat.css');
         const inputStyles = await readProjectFile('css/input.css');
@@ -162,6 +253,11 @@ describe('project structure', () => {
         expect(componentStyles).not.toContain('.image-viewer');
         expect(componentStyles).not.toContain('.settings-modal');
         expect(await readProjectFile('css/settings.css')).not.toContain('.setting-help');
+        expect(await readProjectFile('css/settings.css')).not.toContain('.settings-full-input');
+        expect(await readProjectFile('css/settings.css')).not.toContain('.settings-select');
+        expect(await readProjectFile('css/settings_controls.css')).not.toContain(
+            'transition: all 0.2s'
+        );
         expect(chatStyles).not.toContain('.tool-disclosure');
         expect(chatStyles).not.toContain('.thoughts-container');
         expect(chatStyles).not.toContain('.generated-images-grid');
@@ -171,42 +267,85 @@ describe('project structure', () => {
         expect(sidepanelHtml).toContain('href="./index.css"');
         expect(sidepanelHtml).not.toMatch(/<style>/i);
         await expect(exists('sidepanel/index.css')).resolves.toBe(true);
+        expect(settingsHtml).toContain('../css/settings.css');
+        expect(settingsHtml).toContain('../css/settings_controls.css');
+        expect(await readProjectFile('sandbox/ui/layout.js')).not.toContain('SettingsTemplate +');
     });
 
     it('keeps connection settings helpers split from the settings section controller', async () => {
         const helperModules = [
             'sandbox/ui/settings/sections/connection_events.js',
-            'sandbox/ui/settings/sections/connection_utils.js',
+            'sandbox/ui/settings/sections/mcp_header_fields.js',
             'sandbox/ui/settings/sections/mcp_tools_view.js',
         ];
 
         for (const modulePath of helperModules) {
             await expect(exists(modulePath)).resolves.toBe(true);
         }
+        await expect(exists('sandbox/ui/settings/sections/connection_utils.js')).resolves.toBe(
+            false
+        );
 
         const section = await readProjectFile('sandbox/ui/settings/sections/connection.js');
+        const events = await readProjectFile('sandbox/ui/settings/sections/connection_events.js');
         expect(section).toContain("from './connection_events.js'");
-        expect(section).toContain("from './connection_utils.js'");
+        expect(section).toContain("from './mcp_header_fields.js'");
         expect(section).toContain("from './mcp_tools_view.js'");
+        expect(section).toContain("from '../../../../shared/mcp/transport.js'");
+        expect(section).toContain("from '../../../../shared/settings/openai.js'");
+        expect(section).not.toContain("from './connection_utils.js'");
+        expect(events).toContain("from '../../../../shared/mcp/transport.js'");
+        expect(events).not.toContain("from './connection_utils.js'");
         expect(countCodeLines(section)).toBeLessThan(390);
     });
 
+    it('keeps settings download helpers split from the settings section controller', async () => {
+        await expect(exists('sandbox/ui/settings/log_download.js')).resolves.toBe(true);
+
+        const settings = await readProjectFile('sandbox/ui/settings/index.js');
+        expect(settings).toContain("from './log_download.js'");
+    });
+
     it('keeps content toolbar window helpers split from the window controller', async () => {
-        const helperModules = ['content/toolbar/view/image_preview.js'];
+        const helperModules = [
+            'content/toolbar/view/image_preview.js',
+            'content/toolbar/view/layout.js',
+            'content/toolbar/view/translation_targets.js',
+        ];
 
         for (const modulePath of helperModules) {
             await expect(exists(modulePath)).resolves.toBe(true);
         }
+        await expect(exists('content/toolbar/view/utils.js')).resolves.toBe(false);
 
         const windowView = await readProjectFile('content/toolbar/view/window.js');
+        const widgetView = await readProjectFile('content/toolbar/view/widget.js');
+        const toolbarView = await readProjectFile('content/toolbar/view/index.js');
+        expect(windowView).toContain('GeminiViewLayout');
+        expect(widgetView).toContain('GeminiViewLayout');
+        expect(toolbarView).toContain('GeminiViewLayout');
+        expect(toolbarView).not.toContain('GeminiViewUtils');
         expect(windowView).toContain('GeminiImagePreviewController');
         expect(countCodeLines(windowView)).toBeLessThan(300);
+    });
+
+    it('names content toolbar classic helpers by their controller responsibilities', async () => {
+        await expect(exists('content/toolbar/drag_controller.js')).resolves.toBe(true);
+        await expect(exists('content/toolbar/input_manager.js')).resolves.toBe(true);
+        await expect(exists('content/toolbar/utils/drag.js')).resolves.toBe(false);
+        await expect(exists('content/toolbar/utils/input.js')).resolves.toBe(false);
+
+        const uiManager = await readProjectFile('content/toolbar/ui/manager.js');
+        const controller = await readProjectFile('content/toolbar/controller.js');
+        expect(uiManager).toContain('GeminiDragController');
+        expect(controller).toContain('GeminiInputManager');
     });
 
     it('keeps message rendering helpers split from the message state controller', async () => {
         const helperModules = [
             'sandbox/render/context_compression.js',
             'sandbox/render/copy_button.js',
+            'sandbox/render/math_placeholders.js',
             'sandbox/render/message_edit.js',
             'sandbox/render/message_media.js',
             'sandbox/render/sources.js',
@@ -217,6 +356,7 @@ describe('project structure', () => {
         }
 
         const message = await readProjectFile('sandbox/render/message.js');
+        const pipeline = await readProjectFile('sandbox/render/pipeline.js');
         expect(message).toContain("from './content.js'");
         expect(message).toContain("from '../core/displayable_content.js'");
         expect(message).not.toContain('appendContextCompressionNotice');
@@ -225,6 +365,10 @@ describe('project structure', () => {
         expect(message).toContain("from './message_edit.js'");
         expect(message).toContain("from './message_media.js'");
         expect(message).toContain("from './sources.js'");
+        await expect(exists('sandbox/render/math_utils.js')).resolves.toBe(false);
+        expect(pipeline).toContain("from './math_placeholders.js'");
+        expect(pipeline).toContain('MathPlaceholderProtector');
+        expect(pipeline).not.toContain("from './math_utils.js'");
         expect(countCodeLines(message)).toBeLessThan(500);
     });
 
@@ -234,6 +378,7 @@ describe('project structure', () => {
             'sandbox/controllers/message_matchers.js',
             'sandbox/controllers/message_results.js',
             'sandbox/controllers/message_tools.js',
+            'sandbox/controllers/message_tool_messages.js',
         ];
 
         for (const modulePath of helperModules) {
@@ -241,12 +386,36 @@ describe('project structure', () => {
         }
 
         const handler = await readProjectFile('sandbox/controllers/message_handler.js');
+        const toolMessages = await readProjectFile('sandbox/controllers/message_tool_messages.js');
         expect(handler).toContain("from '../core/displayable_content.js'");
         expect(handler).toContain("from './message_matchers.js'");
         expect(handler).toContain("from './message_results.js'");
-        expect(handler).toContain("from './message_tools.js'");
+        expect(handler).toContain("from './message_tool_messages.js'");
+        expect(handler).not.toContain("from './message_tools.js'");
+        expect(toolMessages).toContain("from './message_tools.js'");
         expect(handler).not.toMatch(/^\s{4}buildToolOutputHistoryText\s*\(/m);
+        expect(handler).not.toContain("kind: 'tool-output'");
+        expect(handler).not.toContain("kind: 'tool-status'");
         expect(countCodeLines(handler)).toBeLessThan(600);
+    });
+
+    it('keeps UI message helper branches split by responsibility', async () => {
+        const helperModules = [
+            'background/handlers/ui_mcp_tools.js',
+            'background/handlers/ui_tab_actions.js',
+        ];
+
+        for (const modulePath of helperModules) {
+            await expect(exists(modulePath)).resolves.toBe(true);
+        }
+
+        const handler = await readProjectFile('background/handlers/ui.js');
+        expect(handler).toContain("from './ui_mcp_tools.js'");
+        expect(handler).toContain("from './ui_tab_actions.js'");
+        expect(handler).not.toMatch(/^\s{4}_loadMcpTools\s*\(/m);
+        expect(handler).not.toMatch(/^\s{4}_toSafeMcpTools\s*\(/m);
+        expect(handler).not.toContain('toControlTabSummary');
+        expect(countCodeLines(handler)).toBeLessThan(340);
     });
 
     it('keeps sidepanel session merge helpers split from the message bridge', async () => {
@@ -256,5 +425,14 @@ describe('project structure', () => {
         expect(bridge).toContain("from './session_merge.js'");
         expect(bridge).not.toMatch(/\bfunction mergeSessionSaveWithCurrent\s*\(/);
         expect(countCodeLines(bridge)).toBeLessThan(420);
+    });
+
+    it('keeps sidepanel download actions next to the message bridge', async () => {
+        await expect(exists('sidepanel/core/downloads.js')).resolves.toBe(true);
+        await expect(exists('sidepanel/utils/download.js')).resolves.toBe(false);
+
+        const bridge = await readProjectFile('sidepanel/core/bridge.js');
+        expect(bridge).toContain("from './downloads.js'");
+        expect(bridge).not.toContain("from '../utils/download.js'");
     });
 });

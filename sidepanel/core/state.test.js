@@ -129,4 +129,61 @@ describe('StateManager tab ownership', () => {
             payload: 'gpt-5',
         });
     });
+
+    it('restores text selection blacklist during initialization', () => {
+        setupChromeWithLocalData({
+            geminiTextSelectionBlacklist: 'github.com\n*.google.com',
+        });
+        const frame = createFrame();
+        const manager = new StateManager(frame);
+
+        manager.init();
+        manager.markUiReady();
+
+        expect(frame.postMessage).toHaveBeenCalledWith({
+            action: 'RESTORE_TEXT_SELECTION_BLACKLIST',
+            payload: 'github.com\n*.google.com',
+        });
+    });
+
+    it('forwards local settings changes saved by the standalone settings page', () => {
+        const listeners = setupChromeWithLocalData({
+            geminiProvider: 'web',
+            geminiOfficialModel: 'gemini-2.5-flash',
+            geminiTextSelectionBlacklist: 'old.example',
+        });
+        const frame = createFrame();
+        const manager = new StateManager(frame);
+
+        manager.init();
+        manager.markUiReady();
+        frame.postMessage.mockClear();
+
+        listeners.storageChanged(
+            {
+                geminiProvider: { oldValue: 'web', newValue: 'official' },
+                geminiOfficialModel: {
+                    oldValue: 'gemini-2.5-flash',
+                    newValue: 'gemini-2.5-pro',
+                },
+                geminiTextSelectionBlacklist: {
+                    oldValue: 'old.example',
+                    newValue: 'github.com',
+                },
+            },
+            'local'
+        );
+
+        expect(frame.postMessage).toHaveBeenCalledWith({
+            action: 'RESTORE_TEXT_SELECTION_BLACKLIST',
+            payload: 'github.com',
+        });
+        expect(frame.postMessage).toHaveBeenCalledWith({
+            action: 'RESTORE_CONNECTION_SETTINGS',
+            payload: expect.objectContaining({
+                provider: 'official',
+                officialModel: 'gemini-2.5-pro',
+            }),
+        });
+    });
 });

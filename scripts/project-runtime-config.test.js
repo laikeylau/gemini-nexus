@@ -95,6 +95,8 @@ describe('project runtime config', () => {
                 'sidepanel/index.html',
                 'sidepanel/preload.js',
                 'sandbox/index.html',
+                'settings/index.html',
+                'settings/index.js',
                 'scripts/*.mjs',
                 'scripts/*.test.js',
             ])

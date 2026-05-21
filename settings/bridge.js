@@ -1,0 +1,175 @@
+import {
+    DEFAULT_CONTEXT_MODE,
+    DEFAULT_CONTEXT_RECENT_TURNS,
+    DEFAULT_SHORTCUTS,
+    DEFAULT_SIDE_PANEL_SCOPE,
+    normalizeContextRecentTurns,
+} from '../shared/config/constants.js';
+import {
+    CONNECTION_STORAGE_KEYS,
+    createConnectionSettingsPayload,
+    createConnectionStorageUpdate,
+} from '../shared/settings/connection.js';
+import { CUSTOM_SELECTION_TOOLS_STORAGE_KEY } from '../shared/settings/selection_tools.js';
+
+const SETTINGS_STORAGE_KEYS = [
+    'geminiShortcuts',
+    'geminiTheme',
+    'geminiLanguage',
+    'geminiTextSelectionEnabled',
+    'geminiTextSelectionBlacklist',
+    CUSTOM_SELECTION_TOOLS_STORAGE_KEY,
+    'geminiImageToolsEnabled',
+    'geminiSidebarBehavior',
+    'geminiSidePanelScope',
+    'geminiAccountIndices',
+    'geminiContextMode',
+    'geminiContextRecentTurns',
+    ...CONNECTION_STORAGE_KEYS,
+];
+
+function getLocalStorageData(keys) {
+    return new Promise((resolve) => {
+        chrome.storage.local.get(keys, (result) => resolve(result || {}));
+    });
+}
+
+function setLocalStorageData(data) {
+    chrome.storage.local.set(data);
+}
+
+function normalizeContextSettings(payload) {
+    return {
+        mode: payload?.mode === 'recent' ? 'recent' : DEFAULT_CONTEXT_MODE,
+        recentTurns: normalizeContextRecentTurns(payload?.recentTurns),
+    };
+}
+
+export class StandaloneSettingsBridge {
+    constructor(controller) {
+        this.controller = controller;
+        this.handleWindowMessage = this.handleWindowMessage.bind(this);
+    }
+
+    init() {
+        window.addEventListener('message', this.handleWindowMessage);
+    }
+
+    async restoreInitialState() {
+        const result = await getLocalStorageData(SETTINGS_STORAGE_KEYS);
+        const shortcuts = { ...DEFAULT_SHORTCUTS, ...(result.geminiShortcuts || {}) };
+
+        this.controller.updateShortcuts(shortcuts);
+        this.controller.updateTheme(
+            result.geminiTheme || localStorage.getItem('geminiTheme') || 'system'
+        );
+        this.controller.updateLanguage(
+            result.geminiLanguage || localStorage.getItem('geminiLanguage') || 'system'
+        );
+        this.controller.updateTextSelection(result.geminiTextSelectionEnabled !== false);
+        this.controller.updateTextSelectionBlacklist(result.geminiTextSelectionBlacklist || '');
+        this.controller.updateCustomSelectionTools(
+            result[CUSTOM_SELECTION_TOOLS_STORAGE_KEY] || []
+        );
+        this.controller.updateImageTools(result.geminiImageToolsEnabled !== false);
+        this.controller.updateSidebarBehavior(result.geminiSidebarBehavior || 'auto');
+        this.controller.updateSidePanelScope(
+            result.geminiSidePanelScope || DEFAULT_SIDE_PANEL_SCOPE
+        );
+        this.controller.updateAccountIndices(result.geminiAccountIndices || '0');
+        this.controller.updateContextSettings({
+            mode: result.geminiContextMode || DEFAULT_CONTEXT_MODE,
+            recentTurns: result.geminiContextRecentTurns || DEFAULT_CONTEXT_RECENT_TURNS,
+        });
+        this.controller.updateConnectionSettings(
+            createConnectionSettingsPayload(result, { includeLegacyFallbacks: true })
+        );
+
+        if (chrome.runtime?.getManifest) {
+            this.controller.updateAppVersion(`v${chrome.runtime.getManifest().version}`);
+        }
+        this.controller.fetchGithubData?.();
+    }
+
+    handleWindowMessage(event) {
+        if (event.source !== window) return;
+
+        const { action, payload } = event.data || {};
+        switch (action) {
+            case 'FORWARD_TO_BACKGROUND':
+                this.forwardToBackground(payload);
+                return;
+            case 'SAVE_SHORTCUTS':
+                setLocalStorageData({ geminiShortcuts: payload || {} });
+                return;
+            case 'SAVE_THEME':
+                localStorage.setItem('geminiTheme', payload || 'system');
+                setLocalStorageData({ geminiTheme: payload || 'system' });
+                return;
+            case 'SAVE_LANGUAGE':
+                localStorage.setItem('geminiLanguage', payload || 'system');
+                setLocalStorageData({ geminiLanguage: payload || 'system' });
+                return;
+            case 'SAVE_TEXT_SELECTION':
+                setLocalStorageData({ geminiTextSelectionEnabled: payload !== false });
+                return;
+            case 'SAVE_TEXT_SELECTION_BLACKLIST':
+                setLocalStorageData({ geminiTextSelectionBlacklist: payload || '' });
+                return;
+            case 'SAVE_CUSTOM_SELECTION_TOOLS':
+                setLocalStorageData({
+                    [CUSTOM_SELECTION_TOOLS_STORAGE_KEY]: Array.isArray(payload) ? payload : [],
+                });
+                return;
+            case 'SAVE_IMAGE_TOOLS':
+                setLocalStorageData({ geminiImageToolsEnabled: payload !== false });
+                return;
+            case 'SAVE_SIDEBAR_BEHAVIOR':
+                setLocalStorageData({ geminiSidebarBehavior: payload || 'auto' });
+                return;
+            case 'SAVE_SIDE_PANEL_SCOPE':
+                setLocalStorageData({ geminiSidePanelScope: payload || DEFAULT_SIDE_PANEL_SCOPE });
+                return;
+            case 'SAVE_ACCOUNT_INDICES':
+                setLocalStorageData({ geminiAccountIndices: payload || '0' });
+                return;
+            case 'SAVE_CONTEXT_SETTINGS':
+                {
+                    const context = normalizeContextSettings(payload);
+                    setLocalStorageData({
+                        geminiContextMode: context.mode,
+                        geminiContextRecentTurns: context.recentTurns,
+                    });
+                }
+                return;
+            case 'SAVE_CONNECTION_SETTINGS':
+                setLocalStorageData(createConnectionStorageUpdate(payload));
+                return;
+            default:
+                return;
+        }
+    }
+
+    async forwardToBackground(payload) {
+        if (!payload || !chrome.runtime?.sendMessage) return;
+
+        try {
+            const response = await chrome.runtime.sendMessage(payload);
+            this.handleBackgroundResponse(response);
+        } catch (error) {
+            console.warn('Error forwarding settings request:', error);
+        }
+    }
+
+    handleBackgroundResponse(response) {
+        if (!response || typeof response !== 'object') return;
+
+        if (response.action === 'MCP_TEST_RESULT') {
+            this.controller.updateMcpTestResult(response);
+        } else if (response.action === 'MCP_TOOLS_RESULT') {
+            this.controller.updateMcpToolsResult(response);
+        } else if (response.logs) {
+            this.controller.saveLogFile(response.logs);
+        }
+    }
+}

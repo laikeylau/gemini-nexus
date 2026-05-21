@@ -1,10 +1,10 @@
-import { WaitForHelper } from '../wait_helper.js';
+import { ActionWaiter } from '../action_waiter.js';
 
 export class BaseActionHandler {
     constructor(connection, snapshotManager, waitHelper) {
         this.connection = connection;
         this.snapshotManager = snapshotManager;
-        this.waitHelper = waitHelper || new WaitForHelper(connection);
+        this.waitHelper = waitHelper || new ActionWaiter(connection);
     }
 
     cmd(method, params) {

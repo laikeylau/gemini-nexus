@@ -113,7 +113,7 @@ Gemini Nexus 可以选择连接到一个或多个外部 MCP 服务器（通过 *
 
 #### 仓库结构
 
-本仓库根目录就是可运行的 Chrome 扩展项目根目录。`package.json`、`manifest.json`、Vite 配置、源码、测试和打包脚本都位于根目录。跨运行域共享的工具代码位于 `shared/`，并按能力分组到 `shared/attachments/`、`shared/config/`、`shared/dom/`、`shared/mcp/`、`shared/media/`、`shared/messaging/`、`shared/models/`、`shared/settings/`、`shared/text/`、`shared/ui/` 和 `shared/utils/`；不再保留顶层 `shared/*.js` 兼容入口。模块目录的聚合入口统一使用目录内 `index.js`，避免出现同级 `foo.js` 与 `foo/` 并存；运行域入口保留为各运行域根部的 `index.js`，例如 `background/index.js`、`content/index.js`、`sandbox/index.js` 和 `sidepanel/index.js`。运行时代码文件使用 `snake_case`，仓库工具脚本和工作流文件可使用 `kebab-case`。
+本仓库根目录就是可运行的 Chrome 扩展项目根目录。`package.json`、`manifest.json`、Vite 配置、源码、测试和打包脚本都位于根目录。跨运行域共享的工具代码位于 `shared/`，并按能力分组到 `shared/attachments/`、`shared/config/`、`shared/dom/`、`shared/logging/`、`shared/mcp/`、`shared/media/`、`shared/messaging/`、`shared/models/`、`shared/settings/`、`shared/text/`、`shared/ui/` 和 `shared/utils/`；不再保留顶层 `shared/*.js` 兼容入口。模块目录的聚合入口统一使用目录内 `index.js`，避免出现同级 `foo.js` 与 `foo/` 并存；运行域入口保留为各运行域根部的 `index.js`，例如 `background/index.js`、`content/index.js`、`sandbox/index.js`、`sidepanel/index.js`，以及独立设置页 `settings/index.js`。运行时代码文件使用 `snake_case`，仓库工具脚本和工作流文件可使用 `kebab-case`。
 
 #### 安装步骤
 

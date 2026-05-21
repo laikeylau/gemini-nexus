@@ -415,6 +415,7 @@ describe('RequestDispatcher response mapping', () => {
     it('refreshes Web auth context and retries when upload tokens are missing', async () => {
         vi.useFakeTimers();
         vi.spyOn(Math, 'random').mockReturnValue(0);
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
         getHistory.mockResolvedValue([]);
         sendWebMessage
             .mockRejectedValueOnce(

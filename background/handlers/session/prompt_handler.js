@@ -12,9 +12,8 @@ import {
     createOfficialFunctionResponseParts,
     createOfficialModelMessage,
     hasNativeFunctionCalls,
-    parseToolCommand,
-    splitToolCallFromText,
-} from './utils.js';
+} from './official_function_response.js';
+import { parseToolCommand, splitToolCallFromText } from '../../../shared/text/tool_call_text.js';
 
 // Spaces out looped requests to avoid rate-limit bursts.
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

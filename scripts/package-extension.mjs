@@ -28,6 +28,7 @@ const localDependencyAssets = [
 const requiredPaths = [
     'manifest.json',
     'logo.png',
+    'assets/icons',
     'background',
     'shared',
     'services',
@@ -35,6 +36,7 @@ const requiredPaths = [
     'dist/sidepanel/index.html',
     'dist/sidepanel/preload.js',
     'dist/sandbox/index.html',
+    'dist/settings/index.html',
 ];
 
 /**
@@ -119,6 +121,7 @@ async function ensurePackagedHtmlAssetReferences() {
     const missingReferences = await findMissingPackagedAssetReferences(packageDir, [
         'sidepanel/index.html',
         'sandbox/index.html',
+        'settings/index.html',
     ]);
 
     if (missingReferences.length > 0) {
@@ -229,6 +232,7 @@ async function main() {
     await Promise.all([
         writePackagedManifest(),
         copyIntoPackage('logo.png'),
+        copyIntoPackage('assets/icons'),
         copyIntoPackage('background'),
         writeContentBundle(),
         copyIntoPackage('shared'),
@@ -238,6 +242,7 @@ async function main() {
         copyIntoPackage('dist/sidepanel/index.html', 'sidepanel/index.html'),
         copyIntoPackage('dist/sidepanel/preload.js', 'sidepanel/preload.js'),
         copyIntoPackage('dist/sandbox/index.html', 'sandbox/index.html'),
+        copyIntoPackage('dist/settings/index.html', 'settings/index.html'),
     ]);
 
     await removeJunkFiles(packageDir);

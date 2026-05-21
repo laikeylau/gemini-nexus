@@ -95,6 +95,35 @@ describe('TabSelectorController browser control bar', () => {
         expect(onSelect).toHaveBeenCalledWith(2, false);
     });
 
+    it('uses shared classes for empty states and tab favicon presentation', () => {
+        const controller = new TabSelectorController();
+
+        controller.open([], vi.fn(), null);
+        const empty = document.querySelector('#tab-list .empty-list-state');
+        expect(empty).toBeTruthy();
+        expect(empty.textContent).toBe('No open tabs found.');
+        expect(empty.hasAttribute('style')).toBe(false);
+
+        controller.open(
+            [
+                {
+                    id: 2,
+                    title: 'OpenAI',
+                    url: 'https://openai.com/',
+                    favIconUrl: 'https://openai.com/favicon.ico',
+                    controllable: true,
+                },
+            ],
+            vi.fn(),
+            2
+        );
+
+        const item = document.querySelector('[data-tab-id="2"]');
+        expect(item.querySelector('.browser-tab-favicon')).toBeTruthy();
+        expect(item.querySelector('.tab-lock-only-btn').classList.contains('is-locked')).toBe(true);
+        expect(item.querySelectorAll('[style]')).toHaveLength(0);
+    });
+
     it('resets the trigger button with the shared tab stack icon', () => {
         const controller = new TabSelectorController();
         const trigger = document.getElementById('tab-switcher-btn');

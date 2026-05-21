@@ -1,4 +1,4 @@
-import { MathHandler } from './math_utils.js';
+import { MathPlaceholderProtector } from './math_placeholders.js';
 
 const ALLOWED_TAGS = new Set([
     'a',
@@ -134,7 +134,7 @@ export function transformMarkdown(text) {
         return escapeHtml(text);
     }
 
-    const mathHandler = new MathHandler();
+    const mathHandler = new MathPlaceholderProtector();
 
     let processedText = mathHandler.protect(text || '');
 

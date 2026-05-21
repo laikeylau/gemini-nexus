@@ -4,6 +4,49 @@
     const STYLES = window.GeminiToolbarStyles || '';
     const WEB_MODEL_OPTIONS = window.GeminiWebModels.createOptionMarkup();
 
+    function buildTranslationTargetOptions(t) {
+        const options = t.translationTargetOptions || [];
+        return options
+            .map(
+                (option) => `
+                    <label class="translation-target-option">
+                        <input type="checkbox" name="translation-target" value="${option.value}" ${option.value === 'auto' ? 'checked' : ''}>
+                        <div class="selection-check">
+                            ${ICONS.CHECK}
+                        </div>
+                        <span>${option.label}</span>
+                    </label>
+                `
+            )
+            .join('');
+    }
+
+    function getDefaultTranslationTargetLabel(t) {
+        return (
+            (t.translationTargetOptions || []).find((option) => option.value === 'auto')?.label ||
+            'Auto'
+        );
+    }
+
+    function buildTranslationTargetMarkup(t) {
+        return `
+            <div class="translation-targets hidden" id="translation-targets" aria-label="${t.translateTargetLabel}">
+                <span class="translation-targets-label">${t.translateTargetLabel}</span>
+                <div class="translation-target-dropdown" id="translation-target-dropdown">
+                    <button type="button" class="translation-target-trigger" id="translation-target-trigger" aria-haspopup="true" aria-expanded="false">
+                        <span class="translation-target-summary" id="translation-target-summary">${getDefaultTranslationTargetLabel(t)}</span>
+                        <span class="translation-target-caret" aria-hidden="true">${ICONS.CHEVRON_RIGHT}</span>
+                    </button>
+                    <div class="translation-target-menu hidden" id="translation-target-menu">
+                        <div class="translation-target-options" id="translation-target-options">
+                            ${buildTranslationTargetOptions(t)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
     function buildMainStructure() {
         const t = window.GeminiToolbarStrings || {};
         const toolbarHTML = `
@@ -16,6 +59,11 @@
             <button class="btn" id="btn-translate" title="${t.translate}">${ICONS.TRANSLATE}</button>
             <button class="btn" id="btn-explain" title="${t.explain}">${ICONS.EXPLAIN}</button>
             <button class="btn" id="btn-summarize" title="${t.summarize}">${ICONS.SUMMARIZE}</button>
+            <div class="custom-selection-tools" id="custom-selection-tools"></div>
+            <div class="custom-selection-more hidden" id="custom-selection-more">
+                <button class="btn" id="btn-custom-selection-more" title="${t.customSelectionMore || 'More custom tools'}">${ICONS.TOOLS}</button>
+                <div class="custom-selection-more-menu" id="custom-selection-more-menu"></div>
+            </div>
         </div>
     `;
 
@@ -59,8 +107,16 @@
         <!-- Main Ask Window (Light Theme, Resizable) -->
         <div class="ask-window" id="ask-window">
             <div class="ask-header" id="ask-header">
-                <span class="window-title" id="window-title">${t.windowTitle}</span>
+                <div class="header-title-group">
+                    <span class="window-title" id="window-title">${t.windowTitle}</span>
+                    ${buildTranslationTargetMarkup(t)}
+                </div>
                 <div class="header-actions">
+                    <select id="ask-provider-select" class="ask-provider-select" title="${t.toolbarProviderLabel || 'Popup provider'}">
+                        <option value="web">${t.providerWebShort || 'Web'}</option>
+                        <option value="official">${t.providerOfficialShort || 'API'}</option>
+                        <option value="openai">${t.providerOpenAIShort || 'OpenAI'}</option>
+                    </select>
                     <select id="ask-model-select" class="ask-model-select">
                         ${WEB_MODEL_OPTIONS}
                     </select>

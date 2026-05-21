@@ -1,7 +1,10 @@
 import { appendMessage } from '../render/message.js';
 import { sendToBackground, saveSessionsToStorage } from '../../shared/messaging/index.js';
 import { t } from '../core/i18n.js';
-import { normalizeUserAttachments } from '../../shared/attachments/index.js';
+import {
+    normalizeMessageImages,
+    normalizeUserAttachments,
+} from '../../shared/attachments/index.js';
 
 export class PromptController {
     constructor(sessionManager, uiController, imageManager, appController) {
@@ -93,15 +96,10 @@ export class PromptController {
         this.app.sessionFlow.refreshHistoryUI();
     }
 
-    normalizeMessageImages(image) {
-        if (!image) return [];
-        return Array.isArray(image) ? image.filter(Boolean) : [image];
-    }
-
     getMessageFiles(message) {
         const attachments = normalizeUserAttachments(message?.attachments);
         if (attachments.length > 0) return attachments;
-        return this.buildFilesFromImages(this.normalizeMessageImages(message?.image));
+        return this.buildFilesFromImages(normalizeMessageImages(message?.image));
     }
 
     buildFilesFromImages(images) {

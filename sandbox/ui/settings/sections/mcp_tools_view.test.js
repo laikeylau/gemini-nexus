@@ -83,6 +83,8 @@ describe('MCP tools view', () => {
         expect(summary.textContent).toBe('模式：已选择。已暴露工具：1/2。');
         expect(list.querySelector('summary')?.textContent).toContain('browser');
         expect(list.querySelector('summary')?.textContent).toContain('1/2');
+        expect(list.querySelectorAll('[style]').length).toBe(0);
+        expect(list.querySelector('.mcp-tool-row')).toBeTruthy();
 
         const toolCheckboxes = [...list.querySelectorAll('label input[type="checkbox"]')];
         expect(toolCheckboxes).toHaveLength(2);

@@ -20,6 +20,7 @@ describe('console log redaction', () => {
 
     it('redacts secrets before persisted console messages are stored', () => {
         const logManager = { add: vi.fn() };
+        console.warn = vi.fn();
         setupConsoleInterception(logManager);
 
         console.warn('request failed', {

@@ -41,7 +41,9 @@ export class SidebarController {
             });
         }
         if (this.searchInput) {
-            this.searchInput.addEventListener('input', (e) => this.handleSearch(e.target.value));
+            this.searchInput.addEventListener('input', (inputEvent) =>
+                this.handleSearch(inputEvent.target.value)
+            );
         }
     }
 
@@ -137,13 +139,10 @@ export class SidebarController {
         const fragment = document.createDocumentFragment();
 
         if (sessions.length === 0) {
-            const emptyEl = document.createElement('div');
-            emptyEl.style.padding = '16px';
-            emptyEl.style.textAlign = 'center';
-            emptyEl.style.color = 'var(--text-tertiary)';
-            emptyEl.style.fontSize = '13px';
-            emptyEl.textContent = t('noConversations');
-            fragment.appendChild(emptyEl);
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-list-state';
+            emptyState.textContent = t('noConversations');
+            fragment.appendChild(emptyState);
             this.listEl.replaceChildren(fragment);
             return;
         }
@@ -171,12 +170,12 @@ export class SidebarController {
             spinner.title = t('generating');
             spinner.setAttribute('aria-label', t('generating'));
 
-            const delBtn = document.createElement('span');
-            delBtn.className = 'history-delete';
-            delBtn.textContent = '✕';
-            delBtn.title = t('delete');
-            delBtn.onclick = (e) => {
-                e.stopPropagation();
+            const deleteButton = document.createElement('span');
+            deleteButton.className = 'history-delete';
+            deleteButton.textContent = '✕';
+            deleteButton.title = t('delete');
+            deleteButton.onclick = (clickEvent) => {
+                clickEvent.stopPropagation();
                 if (confirm(t('deleteChatConfirm'))) {
                     this.itemCallbacks.onDelete(s.id);
                 }
@@ -186,7 +185,7 @@ export class SidebarController {
             if (isGeneratingSession) {
                 item.appendChild(spinner);
             }
-            item.appendChild(delBtn);
+            item.appendChild(deleteButton);
             fragment.appendChild(item);
         });
 

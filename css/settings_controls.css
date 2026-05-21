@@ -11,72 +11,94 @@
     flex: 1;
 }
 
-.shortcut-input {
+.shortcut-input,
+.settings-input {
     width: 140px;
-    padding: 5px 9px;
+    padding: 8px 12px;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: 10px;
     font-size: 13px;
     text-align: center;
     color: var(--text-primary);
     outline: none;
     background: var(--bg-input);
     cursor: pointer;
-    font-family: monospace;
-    transition: all 0.2s;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    transition:
+        border-color var(--settings-transition-speed, 0.2s),
+        background var(--settings-transition-speed, 0.2s),
+        box-shadow var(--settings-transition-speed, 0.2s);
 }
 
-.shortcut-input:focus {
+.shortcut-input:focus,
+.settings-input:focus {
     border-color: var(--primary);
     background: var(--bg-input-focus);
-    box-shadow: 0 0 0 2px rgba(11, 87, 208, 0.1);
+    box-shadow: 0 0 0 3px rgba(11, 87, 208, 0.15);
 }
 
-.shortcut-input.settings-full-input {
+.settings-input.settings-full-input {
     width: 100%;
 }
 
-.shortcut-input.settings-select {
+.settings-input.settings-select {
     width: 100%;
-}
-
-.shortcut-input.settings-full-input,
-.shortcut-input.settings-select {
     min-width: 0;
     box-sizing: border-box;
     text-align: left;
     font-family: inherit;
-}
-
-.shortcut-input.settings-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235f6368' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
     cursor: pointer;
 }
 
+.settings-input.settings-select.relaxed {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
 .setting-panel {
-    margin-bottom: 8px;
-    padding: 10px;
-    border-radius: 6px;
+    margin-bottom: 16px;
+    padding: 16px 20px;
+    border-radius: 14px;
     background: var(--bg-setting-panel);
+    border: 1px solid var(--border-color);
+    transition:
+        background var(--settings-transition-speed, 0.2s) cubic-bezier(0.4, 0, 0.2, 1),
+        border-color var(--settings-transition-speed, 0.2s) cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow var(--settings-transition-speed, 0.2s) cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.setting-panel:hover {
+    background: var(--btn-hover);
+    border-color: var(--primary);
+    box-shadow: var(--settings-shadow-depth-1, 0 4px 12px rgba(0, 0, 0, 0.05));
 }
 
 .setting-panel-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
 }
 
 .setting-panel-header {
     display: flex;
     flex-direction: column;
     gap: 2px;
-    margin-bottom: 8px;
     min-width: 0;
 }
 
 .setting-panel-row .setting-panel-header {
     flex: 1;
-    margin-bottom: 0;
+}
+
+.setting-panel-header-spaced {
+    margin-bottom: 10px;
 }
 
 .setting-inline-toggle {
@@ -86,20 +108,19 @@
 
 .setting-panel-header h5 {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     min-width: 0;
 }
 
 .setting-panel-grid {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 112px;
-    gap: 8px;
-    align-items: end;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
 }
 
 .setting-panel-grid-even {
@@ -107,9 +128,9 @@
 }
 
 .setting-field {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
     min-width: 0;
 }
 
@@ -117,8 +138,9 @@
 .setting-field > label,
 .setting-label {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--text-secondary);
+    margin-left: 2px;
 }
 
 .setting-field-label {
@@ -138,7 +160,7 @@
     margin-bottom: 8px;
 }
 
-.setting-field .shortcut-input {
+.setting-field .settings-input {
     grid-column: 1 / -1;
     width: 100%;
     box-sizing: border-box;
@@ -146,7 +168,7 @@
     font-family: inherit;
 }
 
-.setting-field-number .shortcut-input {
+.setting-field-number .settings-input {
     text-align: center;
     font-family: monospace;
 }
@@ -157,10 +179,42 @@
 }
 
 .setting-toggle {
-    width: 20px;
-    height: 20px;
-    flex: 0 0 auto;
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    width: 40px;
+    height: 22px;
+    background: #bdc1c6;
+    border-radius: 11px;
     cursor: pointer;
+    transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    flex-shrink: 0;
+    margin: 0;
+}
+
+[data-theme='dark'] .setting-toggle {
+    background: #3c4043;
+}
+
+.setting-toggle:checked {
+    background: var(--primary);
+}
+
+.setting-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.setting-toggle:checked::after {
+    transform: translateX(18px);
 }
 
 .setting-help {
@@ -243,6 +297,90 @@
     border-radius: 8px;
 }
 
+.mcp-tool-help-text {
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.mcp-tool-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mcp-tool-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.mcp-tool-row-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.mcp-tool-name {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.mcp-tool-full-name {
+    font-size: 11px;
+    opacity: 0.7;
+    overflow-wrap: anywhere;
+}
+
+.mcp-tool-description {
+    font-size: 11px;
+    opacity: 0.85;
+}
+
+.mcp-tool-group-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 8px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.mcp-tool-group-summary::-webkit-details-marker {
+    display: none;
+}
+
+.mcp-tool-group-summary-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.mcp-tool-group-title {
+    font-size: 12px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.mcp-tool-group-count {
+    font-size: 12px;
+    opacity: 0.85;
+    flex: 0 0 auto;
+}
+
+.mcp-tool-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 2px 2px;
+}
+
 .file-input-hidden {
     display: none;
 }
@@ -260,23 +398,38 @@
 
 .setting-radio-option {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    min-width: 0;
+    gap: 12px;
+    padding: 8px 12px;
+    margin: 0 -8px;
+    border-radius: 8px;
+    transition: background 0.2s;
+    cursor: pointer;
+}
+
+.setting-radio-option:hover {
+    background: var(--btn-hover);
 }
 
 .setting-radio-choice {
     display: inline-flex;
-    align-items: flex-start;
-    gap: 8px;
+    align-items: center;
+    gap: 10px;
     min-width: 0;
     cursor: pointer;
+    flex: 1;
 }
 
-.setting-radio-option input,
-.setting-radio-choice input {
-    margin-top: 3px;
+.setting-radio-option input[type='radio'],
+.setting-radio-option input[type='checkbox'],
+.setting-radio-choice input[type='radio'],
+.setting-radio-choice input[type='checkbox'] {
+    margin: 0;
+    accent-color: var(--primary);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
 }
 
 .setting-radio-title {
@@ -298,7 +451,18 @@
 }
 
 .setting-shortcut-row {
-    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    margin: 0 -8px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.setting-shortcut-row:hover {
+    background: var(--btn-hover);
 }
 
 .setting-shortcut-title {
@@ -318,6 +482,57 @@
     cursor: default;
 }
 
+.custom-selection-tools-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.custom-selection-tool-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--bg-input);
+}
+
+.custom-selection-tool-enabled-label {
+    display: flex;
+    align-items: center;
+    padding-top: 9px;
+}
+
+.custom-selection-tool-enabled {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--primary);
+}
+
+.custom-selection-tool-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.custom-selection-tool-name,
+.custom-selection-tool-prompt {
+    text-align: left;
+}
+
+.custom-selection-tool-prompt {
+    min-height: 82px;
+}
+
+.custom-selection-tool-remove {
+    margin-top: 1px;
+    white-space: nowrap;
+}
+
 @media (max-width: 430px) {
     .setting-panel-row {
         align-items: flex-start;
@@ -330,5 +545,14 @@
     .setting-panel-grid,
     .setting-panel-grid-even {
         grid-template-columns: 1fr;
+    }
+
+    .custom-selection-tool-row {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .custom-selection-tool-remove {
+        grid-column: 2;
+        justify-self: start;
     }
 }

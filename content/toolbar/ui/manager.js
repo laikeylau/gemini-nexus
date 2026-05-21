@@ -12,6 +12,14 @@
         return window.GeminiToolbarStrings || {};
     }
 
+    const TRANSLATION_TARGET_STORAGE_KEY = 'geminiTranslationTargets';
+
+    function normalizeTranslationTargets(targets) {
+        const normalizer = window.GeminiToolbarI18n?.normalizeTranslationTargets;
+        if (typeof normalizer === 'function') return normalizer(targets);
+        return Array.isArray(targets) && targets.length > 0 ? targets : ['auto'];
+    }
+
     /**
      * Main UI Manager
      * Handles lifecycle, view orchestration, and public interface for the Controller.
@@ -27,6 +35,10 @@
             this.callbacks = {};
             this.isBuilt = false;
             this.provider = 'web';
+            this.customSelectionTools = [];
+            this.translationTargets = normalizeTranslationTargets(
+                getStrings().defaultTranslationTargets || ['auto']
+            );
 
             this.grammarManager = null;
             this.bridge = null; // Renderer Bridge
@@ -63,6 +75,8 @@
 
             this.events = new Events(this);
             this.events.bind(this.view.elements, this.view.elements.askWindow);
+            this.view.setSelectedTranslationTargets(this.translationTargets);
+            this.renderCustomSelectionTools();
         }
 
         build() {
@@ -74,12 +88,14 @@
 
             this._initializeRuntimeComponents({ createBridge: true });
             this.isBuilt = true;
+            this.restoreTranslationTargets();
         }
 
         rebuildForLanguageChange() {
             if (!this.isBuilt || !this.domBuilder || !this.domBuilder.rerender) return;
             this.domBuilder.rerender();
             this._initializeRuntimeComponents();
+            this.renderCustomSelectionTools();
         }
 
         get actions() {
@@ -102,6 +118,95 @@
             this.fireCallback('onModelChange', model);
         }
 
+        handleProviderChange(provider) {
+            this.provider = provider || 'web';
+            this.fireCallback('onProviderChange', this.provider);
+        }
+
+        setCustomSelectionTools(tools) {
+            this.customSelectionTools = Array.isArray(tools) ? tools : [];
+            this.renderCustomSelectionTools();
+        }
+
+        renderCustomSelectionTools() {
+            if (!this.view?.elements) return;
+
+            const { customSelectionTools, customSelectionMore, customSelectionMoreMenu } =
+                this.view.elements;
+            if (!customSelectionTools || !customSelectionMore || !customSelectionMoreMenu) return;
+
+            customSelectionTools.replaceChildren();
+            customSelectionMoreMenu.replaceChildren();
+
+            const enabledTools = this.customSelectionTools.filter(
+                (tool) => tool?.enabled !== false && tool?.name && tool?.prompt
+            );
+            const directTools = enabledTools.slice(0, 2);
+            const menuTools = enabledTools.slice(2);
+
+            directTools.forEach((tool) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'btn custom-selection-tool-btn';
+                button.title = tool.name;
+                button.setAttribute('aria-label', tool.name);
+                button.textContent = this.getToolButtonLabel(tool.name);
+                button.addEventListener('mousedown', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.fireCallback('onAction', 'custom_selection_tool', tool);
+                });
+                customSelectionTools.appendChild(button);
+            });
+
+            menuTools.forEach((tool) => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'custom-selection-more-item';
+                item.textContent = tool.name;
+                item.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    this.fireCallback('onAction', 'custom_selection_tool', tool);
+                });
+                customSelectionMoreMenu.appendChild(item);
+            });
+
+            customSelectionMore.classList.toggle('hidden', menuTools.length === 0);
+        }
+
+        getToolButtonLabel(name) {
+            const normalized = String(name || '').trim();
+            if (!normalized) return '+';
+            return normalized.slice(0, 2).toUpperCase();
+        }
+
+        handleTranslationTargetsChange(targets) {
+            this.translationTargets = normalizeTranslationTargets(targets);
+            this.view.setSelectedTranslationTargets(this.translationTargets);
+
+            const storage = globalThis.chrome?.storage?.local;
+            if (!storage || typeof storage.set !== 'function') return;
+            storage
+                .set({ [TRANSLATION_TARGET_STORAGE_KEY]: this.translationTargets })
+                .catch?.(() => {});
+        }
+
+        async restoreTranslationTargets() {
+            const storage = globalThis.chrome?.storage?.local;
+            if (!storage || typeof storage.get !== 'function') return;
+
+            try {
+                const stored = await storage.get(TRANSLATION_TARGET_STORAGE_KEY);
+                this.translationTargets = normalizeTranslationTargets(
+                    stored?.[TRANSLATION_TARGET_STORAGE_KEY]
+                );
+                this.view?.setSelectedTranslationTargets(this.translationTargets);
+            } catch (_) {
+                this.view?.setSelectedTranslationTargets(this.translationTargets);
+            }
+        }
+
         saveWindowDimensions(width, height) {
             const storage = globalThis.chrome?.storage?.local;
             if (!storage || typeof storage.set !== 'function') return;
@@ -113,6 +218,8 @@
                 this.callbacks.onImageBtnHover(...args);
             } else if (type === 'onModelChange' && this.callbacks.onModelChange) {
                 this.callbacks.onModelChange(...args);
+            } else if (type === 'onProviderChange' && this.callbacks.onProviderChange) {
+                this.callbacks.onProviderChange(...args);
             } else if (this.callbacks.onAction) {
                 this.callbacks.onAction(...args);
             }
@@ -203,6 +310,23 @@
             this.view.setInputValue(text);
         }
 
+        setTranslationTargetMode(enabled) {
+            this.view.setTranslationTargetsVisible(enabled);
+            if (enabled) this.view.setSelectedTranslationTargets(this.translationTargets);
+        }
+
+        toggleTranslationTargetDropdown() {
+            this.view.toggleTranslationTargetDropdown();
+        }
+
+        getSelectedTranslationTargets() {
+            const selected = this.view?.getSelectedTranslationTargets();
+            this.translationTargets = normalizeTranslationTargets(
+                selected || this.translationTargets
+            );
+            return this.translationTargets;
+        }
+
         getSelectedModel() {
             return this.view ? this.view.getSelectedModel() : 'gemini-3-flash';
         }
@@ -220,6 +344,7 @@
         updateModelList(settings, currentModel) {
             const provider = settings.provider || (settings.useOfficialApi ? 'official' : 'web');
             this.provider = provider;
+            this.view.setSelectedProvider(provider);
             let options = [];
 
             if (provider === 'official') {

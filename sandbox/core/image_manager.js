@@ -13,9 +13,8 @@ export class ImageManager {
     }
 
     initListeners() {
-        // File selection
-        this.imageInput.addEventListener('change', (e) => {
-            const files = e.target.files;
+        this.imageInput.addEventListener('change', (changeEvent) => {
+            const files = changeEvent.target.files;
             if (files && files.length > 0) {
                 Array.from(files).forEach((file) => this.handleFile(file));
                 // Reset input so same file can be selected again
@@ -24,8 +23,9 @@ export class ImageManager {
         });
 
         // Paste can provide real files, HTML image references, and plain text together.
-        document.addEventListener('paste', (e) => {
-            const clipboardData = e.clipboardData || e.originalEvent.clipboardData;
+        document.addEventListener('paste', (pasteEvent) => {
+            const clipboardData =
+                pasteEvent.clipboardData || pasteEvent.originalEvent.clipboardData;
             const items = clipboardData.items;
             const html = clipboardData.getData('text/html');
             const text = clipboardData.getData('text/plain');
@@ -69,45 +69,44 @@ export class ImageManager {
 
             // Preserve pasted text manually when image handling requires preventDefault().
             if (handledFiles || handledHtmlImages) {
-                e.preventDefault();
+                pasteEvent.preventDefault();
                 if (text) {
                     this._insertTextAtCursor(text);
                 }
             }
         });
 
-        // Drag and Drop
         const dropZone = document.body;
         let dragCounter = 0;
 
-        dropZone.addEventListener('dragenter', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        dropZone.addEventListener('dragenter', (dragEvent) => {
+            dragEvent.preventDefault();
+            dragEvent.stopPropagation();
             dragCounter++;
             this.inputWrapper.classList.add('dragging');
         });
 
-        dropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        dropZone.addEventListener('dragleave', (dragEvent) => {
+            dragEvent.preventDefault();
+            dragEvent.stopPropagation();
             dragCounter--;
             if (dragCounter === 0) {
                 this.inputWrapper.classList.remove('dragging');
             }
         });
 
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        dropZone.addEventListener('dragover', (dragEvent) => {
+            dragEvent.preventDefault();
+            dragEvent.stopPropagation();
         });
 
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
+        dropZone.addEventListener('drop', (dropEvent) => {
+            dropEvent.preventDefault();
+            dropEvent.stopPropagation();
             dragCounter = 0;
             this.inputWrapper.classList.remove('dragging');
 
-            const dt = e.dataTransfer;
+            const dt = dropEvent.dataTransfer;
             const files = dt.files;
             const html = dt.getData('text/html');
             const text = dt.getData('text/plain');
@@ -235,17 +234,15 @@ export class ImageManager {
             const item = document.createElement('div');
             item.className = 'preview-item';
 
-            // Remove Button
-            const removeBtn = document.createElement('button');
-            removeBtn.className = 'preview-remove-btn';
-            removeBtn.textContent = '✕';
-            removeBtn.onclick = (e) => {
-                e.stopPropagation();
+            const removeButton = document.createElement('button');
+            removeButton.className = 'preview-remove-btn';
+            removeButton.textContent = '✕';
+            removeButton.onclick = (clickEvent) => {
+                clickEvent.stopPropagation();
                 this.removeFile(index);
             };
-            item.appendChild(removeBtn);
+            item.appendChild(removeButton);
 
-            // Content
             if (file.type && file.type.startsWith('image/')) {
                 const img = document.createElement('img');
                 img.src = file.base64;

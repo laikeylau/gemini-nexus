@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cropImage } from '../../shared/dom/crop_utils.js';
+import { cropImage } from '../../shared/dom/crop_image.js';
 import { WatermarkRemover } from '../../shared/media/watermark_remover.js';
 import {
     handleCropScreenshotResult,
@@ -10,7 +10,7 @@ import {
     handleSelectionTextResult,
 } from './message_results.js';
 
-vi.mock('../../shared/dom/crop_utils.js', () => ({
+vi.mock('../../shared/dom/crop_image.js', () => ({
     cropImage: vi.fn(),
 }));
 
@@ -56,8 +56,7 @@ describe('message result helpers', () => {
 
     it('cleans generated images and removes their loading state', async () => {
         WatermarkRemover.process.mockResolvedValue('cleaned-image');
-        document.body.innerHTML =
-            '<img data-req-id="req-1" class="loading" style="min-height: 80px">';
+        document.body.innerHTML = '<img data-req-id="req-1" class="generated-image loading">';
 
         await handleGeneratedImageFetchResult({
             reqId: 'req-1',
@@ -68,7 +67,7 @@ describe('message result helpers', () => {
         expect(WatermarkRemover.process).toHaveBeenCalledWith('raw-image');
         expect(img.src).toContain('cleaned-image');
         expect(img.classList.contains('loading')).toBe(false);
-        expect(img.style.minHeight).toBe('auto');
+        expect(img.hasAttribute('style')).toBe(false);
     });
 
     it('runs OCR captures through the cropped image and sends the prompt', async () => {

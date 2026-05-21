@@ -55,7 +55,7 @@ export const FooterTemplate = `
                     ${TemplateIcons.PAPERCLIP}
                     <input type="file" id="image-input" class="file-input-hidden" multiple accept="image/*, .pdf, .txt, .js, .py, .html, .css, .json, .csv, .md">
                 </label>
-                <textarea id="prompt" data-i18n-placeholder="askPlaceholder" placeholder="Ask Gemini..." rows="1"></textarea>
+                <textarea id="prompt" data-i18n-placeholder="askPlaceholder" rows="1"></textarea>
                 <button id="send" data-i18n-title="sendMessageTooltip" title="Send message">
                     ${TemplateIcons.SEND}
                 </button>

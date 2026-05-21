@@ -7,10 +7,6 @@ export function createUserImagesGrid(attachment) {
 
     const imagesContainer = document.createElement('div');
     imagesContainer.className = 'user-images-grid';
-    imagesContainer.style.display = 'flex';
-    imagesContainer.style.flexWrap = 'wrap';
-    imagesContainer.style.gap = '8px';
-    imagesContainer.style.marginBottom = '8px';
 
     userAttachments.forEach((file) => {
         if (!file.type.startsWith('image/')) {
@@ -43,16 +39,7 @@ export function createUserImagesGrid(attachment) {
         const src = file.base64;
         const img = document.createElement('img');
         img.src = src;
-        img.className = 'chat-image';
-
-        if (userAttachments.length > 1) {
-            img.style.maxWidth = '150px';
-            img.style.maxHeight = '200px';
-            img.style.width = 'auto';
-            img.style.height = 'auto';
-            img.style.objectFit = 'contain';
-            img.style.background = 'rgba(0,0,0,0.05)';
-        }
+        img.className = userAttachments.length > 1 ? 'chat-image chat-image-compact' : 'chat-image';
 
         img.addEventListener('click', () => {
             document.dispatchEvent(new CustomEvent('gemini-view-image', { detail: src }));

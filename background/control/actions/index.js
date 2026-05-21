@@ -1,15 +1,15 @@
 import { NavigationActions } from './navigation.js';
 import { InputActions } from './input/index.js';
 import { ObservationActions } from './observation/index.js';
-import { WaitForHelper } from '../wait_helper.js';
+import { ActionWaiter } from '../action_waiter.js';
 
 /**
  * Facade class that aggregates specific action modules.
  */
 export class BrowserActions {
     constructor(connection, snapshotManager, groupContext = {}) {
-        // Initialize shared WaitHelper with default multipliers (1, 1)
-        this.waitHelper = new WaitForHelper(connection);
+        // Share one action waiter so navigation and input actions observe the same CDP stream.
+        this.waitHelper = new ActionWaiter(connection);
 
         this.navigation = new NavigationActions(
             connection,

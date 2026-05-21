@@ -1,5 +1,5 @@
+export { SettingsModalTemplate } from './settings/index.js';
 export { SidebarTemplate } from './sidebar.js';
-export { SettingsTemplate } from './settings/index.js';
 export { HeaderTemplate } from './header.js';
 export { ChatTemplate } from './chat.js';
 export { FooterTemplate } from './footer.js';

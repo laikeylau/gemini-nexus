@@ -4,6 +4,7 @@ import { SettingsController } from './settings/index.js';
 import { ViewerController } from './viewer.js';
 import { TabSelectorController } from './tab_selector.js';
 import { createModelOptions, getPreferredModel } from './model_options.js';
+import { resizeSelectToSelectedOption } from './model_select_width.js';
 
 export class UIController {
     constructor(elements) {
@@ -52,6 +53,10 @@ export class UIController {
         }
     }
 
+    setHostContext(context = {}) {
+        document.body.classList.toggle('host-tab', context.isTab === true);
+    }
+
     scheduleLayoutCheck() {
         if (this.layoutResizeFrame !== null) return;
 
@@ -94,29 +99,7 @@ export class UIController {
     }
 
     resizeModelSelect() {
-        const select = this.modelSelect;
-        if (!select) return;
-
-        // Safety check for empty or invalid selection
-        if (select.selectedIndex === -1) {
-            if (select.options.length > 0) select.selectedIndex = 0;
-            else return; // Should not happen if options exist
-        }
-
-        const tempSpan = document.createElement('span');
-        Object.assign(tempSpan.style, {
-            visibility: 'hidden',
-            position: 'absolute',
-            fontSize: '13px',
-            fontWeight: '500',
-            fontFamily: window.getComputedStyle(select).fontFamily,
-            whiteSpace: 'nowrap',
-        });
-        tempSpan.textContent = select.options[select.selectedIndex].text;
-        document.body.appendChild(tempSpan);
-        const width = tempSpan.getBoundingClientRect().width;
-        document.body.removeChild(tempSpan);
-        select.style.width = `${width + 34}px`;
+        resizeSelectToSelectedOption(this.modelSelect);
     }
 
     // --- Delegation Methods ---

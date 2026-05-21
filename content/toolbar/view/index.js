@@ -13,10 +13,13 @@
             this.widgetView = new window.GeminiViewWidget(this.elements);
             this.windowView = new window.GeminiViewWindow(this.elements);
 
-            // Initial resize of model select if exists
-            const Utils = window.GeminiViewUtils;
-            if (this.elements.askModelSelect && Utils && Utils.resizeSelect) {
-                Utils.resizeSelect(this.elements.askModelSelect);
+            // Initial resize of provider/model selects if present.
+            const Layout = window.GeminiViewLayout;
+            if (this.elements.askProviderSelect && Layout && Layout.resizeSelect) {
+                Layout.resizeSelect(this.elements.askProviderSelect);
+            }
+            if (this.elements.askModelSelect && Layout && Layout.resizeSelect) {
+                Layout.resizeSelect(this.elements.askModelSelect);
             }
         }
 
@@ -25,6 +28,9 @@
             this.elements = {
                 toolbar: get('toolbar'),
                 toolbarDrag: get('toolbar-drag'),
+                customSelectionTools: get('custom-selection-tools'),
+                customSelectionMore: get('custom-selection-more'),
+                customSelectionMoreMenu: get('custom-selection-more-menu'),
                 imageBtn: get('image-btn'),
 
                 // New Window Elements
@@ -33,8 +39,14 @@
                 windowTitle: get('window-title'),
                 contextPreview: get('context-preview'),
                 askInput: get('ask-input'),
+                translationTargets: get('translation-targets'),
+                translationTargetTrigger: get('translation-target-trigger'),
+                translationTargetMenu: get('translation-target-menu'),
+                translationTargetSummary: get('translation-target-summary'),
+                translationTargetOptions: get('translation-target-options'),
                 resultArea: get('result-area'),
                 resultText: get('result-text'),
+                askProviderSelect: get('ask-provider-select'),
                 askModelSelect: get('ask-model-select'),
 
                 // Footer Elements
@@ -50,6 +62,7 @@
                     translate: get('btn-translate'),
                     explain: get('btn-explain'),
                     summarize: get('btn-summarize'),
+                    customSelectionMore: get('btn-custom-selection-more'),
                     headerClose: get('btn-header-close'),
                     stop: get('btn-stop-gen'),
                     continue: get('btn-continue-chat'),
@@ -124,6 +137,18 @@
         setInputValue(text) {
             this.windowView.setInputValue(text);
         }
+        setTranslationTargetsVisible(visible) {
+            this.windowView.setTranslationTargetsVisible(visible);
+        }
+        toggleTranslationTargetDropdown() {
+            this.windowView.toggleTranslationTargetDropdown();
+        }
+        getSelectedTranslationTargets() {
+            return this.windowView.getSelectedTranslationTargets();
+        }
+        setSelectedTranslationTargets(targets) {
+            this.windowView.setSelectedTranslationTargets(targets);
+        }
         isWindowVisible() {
             return this.windowView.isVisible();
         }
@@ -143,11 +168,21 @@
                 : 'gemini-3-flash';
         }
 
+        setSelectedProvider(provider) {
+            const Layout = window.GeminiViewLayout;
+            if (this.elements.askProviderSelect && provider) {
+                this.elements.askProviderSelect.value = provider;
+                if (Layout && Layout.resizeSelect)
+                    Layout.resizeSelect(this.elements.askProviderSelect);
+            }
+        }
+
         setSelectedModel(model) {
-            const Utils = window.GeminiViewUtils;
+            const Layout = window.GeminiViewLayout;
             if (this.elements.askModelSelect && model) {
                 this.elements.askModelSelect.value = model;
-                if (Utils && Utils.resizeSelect) Utils.resizeSelect(this.elements.askModelSelect);
+                if (Layout && Layout.resizeSelect)
+                    Layout.resizeSelect(this.elements.askModelSelect);
             }
         }
 
@@ -170,8 +205,8 @@
                 select.value = options[0].value;
             }
 
-            const Utils = window.GeminiViewUtils;
-            if (Utils && Utils.resizeSelect) Utils.resizeSelect(select);
+            const Layout = window.GeminiViewLayout;
+            if (Layout && Layout.resizeSelect) Layout.resizeSelect(select);
         }
 
         // --- General ---

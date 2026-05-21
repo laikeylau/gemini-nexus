@@ -224,7 +224,7 @@ body.layout-wide .sidebar-overlay {
     z-index: 190;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s;
+    transition: opacity 0.2s ease;
 }
 .sidebar-overlay.visible {
     opacity: 1;
@@ -268,8 +268,7 @@ body.layout-wide .sidebar-overlay {
     }
 
     body.sidebar-open .header,
-    body.sidebar-open .footer,
-    body.sidebar-open .corner-btn {
+    body.sidebar-open .footer {
         opacity: 0.18;
         filter: blur(1px);
         pointer-events: none;

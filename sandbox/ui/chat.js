@@ -21,7 +21,6 @@ export class ChatController {
     }
 
     initListeners() {
-        // Auto-resize Textarea
         if (this.inputFn) {
             this.inputFn.addEventListener('input', () => {
                 this.inputFn.style.height = 'auto';
@@ -30,15 +29,14 @@ export class ChatController {
             });
         }
 
-        // Code Block Copy Delegation
         if (this.historyDiv) {
-            this.historyDiv.addEventListener('click', async (e) => {
-                const link = e.target.closest('a[href]');
+            this.historyDiv.addEventListener('click', async (clickEvent) => {
+                const link = clickEvent.target.closest('a[href]');
                 if (link) {
                     const href = link.getAttribute('href');
                     if (href && /^https?:\/\//i.test(href)) {
-                        e.preventDefault();
-                        e.stopPropagation();
+                        clickEvent.preventDefault();
+                        clickEvent.stopPropagation();
                         window.parent.postMessage(
                             {
                                 action: 'OPEN_EXTERNAL_URL',
@@ -50,17 +48,17 @@ export class ChatController {
                     }
                 }
 
-                const btn = e.target.closest('.copy-code-btn');
-                if (!btn) return;
+                const copyCodeButton = clickEvent.target.closest('.copy-code-btn');
+                if (!copyCodeButton) return;
 
-                const wrapper = btn.closest('.code-block-wrapper');
-                const codeEl = wrapper.querySelector('code');
-                if (!codeEl) return;
+                const codeBlockWrapper = copyCodeButton.closest('.code-block-wrapper');
+                const codeElement = codeBlockWrapper.querySelector('code');
+                if (!codeElement) return;
 
                 try {
-                    await copyToClipboard(codeEl.textContent);
+                    await copyToClipboard(codeElement.textContent);
 
-                    globalThis.GeminiCopyFeedback.showCopied(btn, t('copied'));
+                    globalThis.GeminiCopyFeedback.showCopied(copyCodeButton, t('copied'));
                 } catch (error) {
                     console.error('Failed to copy code', error);
                 }
@@ -240,13 +238,11 @@ export class ChatController {
     }
 
     setLoading(isLoading) {
-        // Toggle button between Send and Stop
         if (isLoading) {
             this.updateStatus(''); // Clear status text, only show spinner
             if (this.statusDiv) this.statusDiv.classList.add('thinking');
 
             if (this.sendBtn) {
-                // Stop Icon (Square)
                 this.sendBtn.innerHTML =
                     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="7" y="7" width="10" height="10" rx="1"/></svg>';
                 this.sendBtn.title = t('stopGenerating');
@@ -257,7 +253,6 @@ export class ChatController {
             if (this.statusDiv) this.statusDiv.classList.remove('thinking');
 
             if (this.sendBtn) {
-                // Send Icon (Paper plane)
                 this.sendBtn.innerHTML =
                     '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
                 this.sendBtn.title = t('sendMessage');

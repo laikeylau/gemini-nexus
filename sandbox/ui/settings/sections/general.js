@@ -3,6 +3,14 @@ import {
     DEFAULT_CONTEXT_RECENT_TURNS,
     DEFAULT_SIDE_PANEL_SCOPE,
 } from '../../../../shared/config/constants.js';
+import { normalizeCustomSelectionTools } from '../../../../shared/settings/selection_tools.js';
+import { createPrefixedId } from '../../../../shared/utils/index.js';
+import { t } from '../../../core/i18n.js';
+import { DOM_IDS, CONFIG_LIMITS } from '../constants.js';
+
+function createCustomSelectionToolId() {
+    return createPrefixedId('custom_tool');
+}
 
 export class GeneralSection {
     constructor(callbacks) {
@@ -15,19 +23,29 @@ export class GeneralSection {
     queryElements() {
         const get = (id) => document.getElementById(id);
         this.elements = {
-            textSelectionToggle: get('text-selection-toggle'),
-            imageToolsToggle: get('image-tools-toggle'),
-            accountIndicesInput: get('account-indices-input'),
-            contextModeSelect: get('context-mode-select'),
-            contextRecentTurnsInput: get('context-recent-turns-input'),
+            textSelectionToggle: get(DOM_IDS.TEXT_SELECTION_TOGGLE),
+            textSelectionBlacklistInput: get(DOM_IDS.TEXT_SELECTION_BLACKLIST),
+            imageToolsToggle: get(DOM_IDS.IMAGE_TOOLS_TOGGLE),
+            customSelectionToolsList: get(DOM_IDS.CONTAINER_SELECTION_TOOLS),
+            customSelectionToolAdd: get(DOM_IDS.BTN_ADD_SELECTION_TOOL),
+            accountIndicesInput: get(DOM_IDS.ACCOUNT_INDICES),
+            contextModeSelect: get(DOM_IDS.CONTEXT_MODE),
+            contextRecentTurnsInput: get(DOM_IDS.INPUT_RECENT_TURNS),
             sidebarRadios: document.querySelectorAll('input[name="sidebar-behavior"]'),
             sidePanelScopeRadios: document.querySelectorAll('input[name="sidepanel-scope"]'),
         };
     }
 
     bindEvents() {
-        const { textSelectionToggle, imageToolsToggle, sidebarRadios, sidePanelScopeRadios } =
-            this.elements;
+        const {
+            textSelectionToggle,
+            imageToolsToggle,
+            customSelectionToolAdd,
+            customSelectionToolsList,
+            sidebarRadios,
+            sidePanelScopeRadios,
+            contextRecentTurnsInput,
+        } = this.elements;
 
         if (textSelectionToggle) {
             textSelectionToggle.addEventListener('change', (event) =>
@@ -38,6 +56,28 @@ export class GeneralSection {
             imageToolsToggle.addEventListener('change', (event) =>
                 this.fire('onImageToolsChange', event.target.checked)
             );
+        }
+        if (customSelectionToolAdd) {
+            customSelectionToolAdd.addEventListener('click', () => {
+                this.addCustomSelectionToolRow({
+                    id: createCustomSelectionToolId(),
+                    name: '',
+                    prompt: '',
+                    enabled: true,
+                });
+            });
+        }
+        if (customSelectionToolsList) {
+            // Event delegation for tool removal button clicks
+            customSelectionToolsList.addEventListener('click', (event) => {
+                const removeButton = event.target.closest('.custom-selection-tool-remove');
+                if (removeButton) {
+                    const row = removeButton.closest('.custom-selection-tool-row');
+                    if (row) {
+                        row.remove();
+                    }
+                }
+            });
         }
         if (sidebarRadios) {
             sidebarRadios.forEach((radio) => {
@@ -57,12 +97,84 @@ export class GeneralSection {
                 });
             });
         }
+        if (contextRecentTurnsInput) {
+            contextRecentTurnsInput.addEventListener('input', (event) => {
+                const parsedValue = Number.parseInt(event.target.value, 10);
+                if (Number.isFinite(parsedValue)) {
+                    if (parsedValue < CONFIG_LIMITS.RECENT_TURNS.MIN) {
+                        event.target.value = CONFIG_LIMITS.RECENT_TURNS.MIN;
+                    } else if (parsedValue > CONFIG_LIMITS.RECENT_TURNS.MAX) {
+                        event.target.value = CONFIG_LIMITS.RECENT_TURNS.MAX;
+                    }
+                }
+            });
+        }
     }
 
     setToggles(textSelection, imageTools) {
         if (this.elements.textSelectionToggle)
             this.elements.textSelectionToggle.checked = textSelection;
         if (this.elements.imageToolsToggle) this.elements.imageToolsToggle.checked = imageTools;
+    }
+
+    setTextSelectionBlacklist(value) {
+        if (this.elements.textSelectionBlacklistInput) {
+            this.elements.textSelectionBlacklistInput.value = value || '';
+        }
+    }
+
+    setCustomSelectionTools(tools) {
+        if (!this.elements.customSelectionToolsList) return;
+
+        this.elements.customSelectionToolsList.replaceChildren();
+        normalizeCustomSelectionTools(tools).forEach((tool) => {
+            this.addCustomSelectionToolRow(tool);
+        });
+    }
+
+    addCustomSelectionToolRow(tool) {
+        const list = this.elements.customSelectionToolsList;
+        if (!list) return;
+
+        const row = document.createElement('div');
+        row.className = 'custom-selection-tool-row';
+        row.dataset.toolId = tool.id || createCustomSelectionToolId();
+
+        const enabledLabel = document.createElement('label');
+        enabledLabel.className = 'custom-selection-tool-enabled-label';
+        const enabled = document.createElement('input');
+        enabled.type = 'checkbox';
+        enabled.className = 'custom-selection-tool-enabled';
+        enabled.checked = tool.enabled !== false;
+        enabledLabel.appendChild(enabled);
+
+        const fields = document.createElement('div');
+        fields.className = 'custom-selection-tool-fields';
+
+        const name = document.createElement('input');
+        name.type = 'text';
+        name.className = 'settings-input settings-full-input custom-selection-tool-name';
+        name.placeholder = t('customSelectionToolNamePlaceholder');
+        name.value = tool.name || '';
+
+        const prompt = document.createElement('textarea');
+        prompt.className =
+            'settings-input settings-full-input settings-monospace-textarea custom-selection-tool-prompt';
+        prompt.placeholder = t('customSelectionToolPromptPlaceholder');
+        prompt.value = tool.prompt || '';
+
+        fields.appendChild(name);
+        fields.appendChild(prompt);
+
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'btn-secondary settings-secondary-action custom-selection-tool-remove';
+        remove.textContent = t('customSelectionToolRemove');
+
+        row.appendChild(enabledLabel);
+        row.appendChild(fields);
+        row.appendChild(remove);
+        list.appendChild(row);
     }
 
     setAccountIndices(value) {
@@ -108,7 +220,9 @@ export class GeneralSection {
     getData() {
         const {
             textSelectionToggle,
+            textSelectionBlacklistInput,
             imageToolsToggle,
+            customSelectionToolsList,
             accountIndicesInput,
             contextModeSelect,
             contextRecentTurnsInput,
@@ -122,7 +236,11 @@ export class GeneralSection {
             DEFAULT_SIDE_PANEL_SCOPE;
         return {
             textSelection: textSelectionToggle ? textSelectionToggle.checked : true,
+            textSelectionBlacklist: textSelectionBlacklistInput
+                ? textSelectionBlacklistInput.value
+                : '',
             imageTools: imageToolsToggle ? imageToolsToggle.checked : true,
+            customSelectionTools: this.getCustomSelectionTools(customSelectionToolsList),
             accountIndices: accountIndicesInput ? accountIndicesInput.value : '0',
             sidebarBehavior: selectedSidebarBehavior,
             sidePanelScope: selectedScope,
@@ -131,6 +249,17 @@ export class GeneralSection {
                 ? contextRecentTurnsInput.value
                 : DEFAULT_CONTEXT_RECENT_TURNS,
         };
+    }
+
+    getCustomSelectionTools(list = this.elements.customSelectionToolsList) {
+        if (!list) return [];
+
+        return [...list.querySelectorAll('.custom-selection-tool-row')].map((row) => ({
+            id: row.dataset.toolId || '',
+            name: row.querySelector('.custom-selection-tool-name')?.value || '',
+            prompt: row.querySelector('.custom-selection-tool-prompt')?.value || '',
+            enabled: row.querySelector('.custom-selection-tool-enabled')?.checked !== false,
+        }));
     }
 
     fire(event, data) {

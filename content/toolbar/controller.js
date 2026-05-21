@@ -1,5 +1,11 @@
 (function () {
+    const TOOLBAR_PROVIDER_STORAGE_KEY = 'geminiToolbarProvider';
+    const TOOLBAR_MODEL_STORAGE_KEY = 'geminiToolbarModel';
+    const TOOLBAR_OPENAI_MODEL_STORAGE_KEY = 'geminiToolbarOpenaiSelectedModel';
     const TOOLBAR_MODEL_STORAGE_KEYS = [
+        TOOLBAR_PROVIDER_STORAGE_KEY,
+        TOOLBAR_MODEL_STORAGE_KEY,
+        TOOLBAR_OPENAI_MODEL_STORAGE_KEY,
         'geminiModel',
         'geminiProvider',
         'geminiUseOfficialApi',
@@ -52,6 +58,7 @@
             this.ui.build();
             this.ui.setCallbacks({
                 onAction: this.handleAction,
+                onProviderChange: (provider) => this.handleProviderChange(provider),
                 onModelChange: (model) => this.handleModelChange(model),
                 onImageBtnHover: (isHovering) => {
                     if (isHovering) {
@@ -90,11 +97,17 @@
                 openaiModel: result.geminiOpenaiModel,
             };
 
-            const provider = settings.provider || (settings.useOfficialApi ? 'official' : 'web');
+            const provider =
+                result[TOOLBAR_PROVIDER_STORAGE_KEY] ||
+                settings.provider ||
+                (settings.useOfficialApi ? 'official' : 'web');
+            settings.provider = provider;
             const selectedModel =
                 provider === 'openai'
-                    ? result.geminiOpenaiSelectedModel || result.geminiModel
-                    : result.geminiModel;
+                    ? result[TOOLBAR_OPENAI_MODEL_STORAGE_KEY] ||
+                      result.geminiOpenaiSelectedModel ||
+                      result.geminiModel
+                    : result[TOOLBAR_MODEL_STORAGE_KEY] || result.geminiModel;
             this.ui.updateModelList(settings, selectedModel);
         }
 
@@ -107,6 +120,10 @@
 
         setImageToolsEnabled(enabled) {
             this.imageDetector.setEnabled(enabled);
+        }
+
+        setCustomSelectionTools(tools) {
+            this.ui.setCustomSelectionTools?.(Array.isArray(tools) ? tools : []);
         }
 
         handleContextAction(mode) {
@@ -201,11 +218,15 @@
         handleModelChange(model) {
             const provider = this.ui.getProvider ? this.ui.getProvider() : 'web';
             if (provider === 'openai') {
-                chrome.storage.local.set({ geminiOpenaiSelectedModel: model });
+                chrome.storage.local.set({ [TOOLBAR_OPENAI_MODEL_STORAGE_KEY]: model });
                 return;
             }
 
-            chrome.storage.local.set({ geminiModel: model });
+            chrome.storage.local.set({ [TOOLBAR_MODEL_STORAGE_KEY]: model });
+        }
+
+        handleProviderChange(provider) {
+            chrome.storage.local.set({ [TOOLBAR_PROVIDER_STORAGE_KEY]: provider });
         }
 
         handleAction(actionType, data) {
@@ -266,6 +287,26 @@
             if (withPageContext) {
                 this.currentSelection = '__PAGE_CONTEXT_FORCE__';
             }
+        }
+
+        showExtensionError(message) {
+            const width = 400;
+            const height = 100;
+            const left = (window.innerWidth - width) / 2;
+            const top = Math.max(24, window.innerHeight / 2 - 200);
+            const rect = {
+                left,
+                top,
+                right: left + width,
+                bottom: top + height,
+                width,
+                height,
+            };
+            const strings = window.GeminiToolbarStrings || {};
+
+            this.ui.showAskWindow(rect, null, strings.error || 'Gemini Nexus');
+            this.ui.showError(message || 'Could not open Gemini Nexus');
+            this.visible = true;
         }
     }
 

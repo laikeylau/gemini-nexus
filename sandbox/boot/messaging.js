@@ -24,7 +24,8 @@ export class AppMessageBridge {
     }
 
     handleMessage(event) {
-        const { action, payload } = event.data;
+        const { action, payload } = event.data || {};
+        if (!action) return;
 
         if (this.app && this.ui) {
             this.dispatch(action, payload, event);
@@ -83,6 +84,14 @@ export class AppMessageBridge {
             this.ui.settings.updateTextSelection(payload);
             return;
         }
+        if (action === 'RESTORE_TEXT_SELECTION_BLACKLIST') {
+            this.ui.settings.updateTextSelectionBlacklist(payload);
+            return;
+        }
+        if (action === 'RESTORE_CUSTOM_SELECTION_TOOLS') {
+            this.ui.settings.updateCustomSelectionTools(payload);
+            return;
+        }
         if (action === 'RESTORE_IMAGE_TOOLS') {
             this.ui.settings.updateImageTools(payload);
             return;
@@ -93,6 +102,16 @@ export class AppMessageBridge {
         }
         if (action === 'RESTORE_APP_VERSION') {
             this.ui.settings.updateAppVersion(payload);
+            return;
+        }
+        if (action === 'OPEN_SETTINGS_MODAL') {
+            this.ui.settings.open();
+            return;
+        }
+        if (action === 'SET_HOST_CONTEXT') {
+            if (typeof this.ui.setHostContext === 'function') {
+                this.ui.setHostContext(payload || {});
+            }
             return;
         }
 

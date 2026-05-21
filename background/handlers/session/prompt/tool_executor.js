@@ -1,4 +1,4 @@
-import { parseToolCommand } from '../utils.js';
+import { parseToolCommand } from '../../../../shared/text/tool_call_text.js';
 import { ToolDispatcher } from '../../../control/dispatcher.js';
 
 export class ToolExecutor {

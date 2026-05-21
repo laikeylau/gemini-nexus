@@ -51,10 +51,10 @@ export class AboutSection {
         if (count) {
             const formatted = count > 999 ? (count / 1000).toFixed(1) + 'k' : count;
             starEl.textContent = `★ ${formatted}`;
-            starEl.style.display = 'inline-flex';
+            starEl.classList.add('is-visible');
             starEl.dataset.fetched = 'true';
         } else {
-            starEl.style.display = 'none';
+            starEl.classList.remove('is-visible');
         }
     }
 
@@ -77,7 +77,7 @@ export class AboutSection {
         if (!updateStatusEl) return;
 
         updateStatusEl.replaceChildren();
-        updateStatusEl.style.color = '';
+        updateStatusEl.classList.remove('is-muted');
 
         if (isUpdateAvailable) {
             const link = document.createElement('a');
@@ -88,7 +88,7 @@ export class AboutSection {
             updateStatusEl.appendChild(link);
         } else {
             updateStatusEl.textContent = `(Latest: ${latest})`;
-            updateStatusEl.style.color = 'var(--text-tertiary)';
+            updateStatusEl.classList.add('is-muted');
         }
     }
 }

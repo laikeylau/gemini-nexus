@@ -46,8 +46,8 @@ export class TabSelectorController {
             this.btnClose.addEventListener('click', () => this.close());
         }
         if (this.modal) {
-            this.modal.addEventListener('click', (e) => {
-                if (e.target === this.modal) this.close();
+            this.modal.addEventListener('click', (clickEvent) => {
+                if (clickEvent.target === this.modal) this.close();
             });
         }
         if (this.controlTarget) {
@@ -60,11 +60,21 @@ export class TabSelectorController {
             });
         }
         if (this.controlStop) {
-            this.controlStop.addEventListener('click', (e) => {
-                e.stopPropagation();
+            this.controlStop.addEventListener('click', (clickEvent) => {
+                clickEvent.stopPropagation();
                 if (this.onStop) this.onStop();
             });
         }
+
+        document.addEventListener('keydown', (keyEvent) => {
+            if (
+                keyEvent.key === 'Escape' &&
+                this.modal &&
+                this.modal.classList.contains('visible')
+            ) {
+                this.close();
+            }
+        });
     }
 
     setControlCallbacks({ onChoose, onStop } = {}) {
@@ -137,13 +147,10 @@ export class TabSelectorController {
         this.listEl.innerHTML = '';
 
         if (!tabs || tabs.length === 0) {
-            const emptyEl = document.createElement('div');
-            emptyEl.style.padding = '16px';
-            emptyEl.style.textAlign = 'center';
-            emptyEl.style.color = 'var(--text-tertiary)';
-            emptyEl.style.fontSize = '13px';
-            emptyEl.textContent = t('noTabsFound');
-            this.listEl.appendChild(emptyEl);
+            const emptyState = document.createElement('div');
+            emptyState.className = 'empty-list-state';
+            emptyState.textContent = t('noTabsFound');
+            this.listEl.appendChild(emptyState);
             return;
         }
 
@@ -160,15 +167,11 @@ export class TabSelectorController {
             item.setAttribute('aria-disabled', String(!isControllable));
             if (isControllable) item.tabIndex = 0;
 
-            // Tab Icon/Favicon
             const icon = document.createElement('img');
             icon.src = tab.favIconUrl || '';
-            icon.style.width = '16px';
-            icon.style.height = '16px';
-            icon.style.marginRight = '8px';
-            icon.style.borderRadius = '2px';
+            icon.className = 'browser-tab-favicon';
             icon.onerror = () => {
-                icon.style.display = 'none';
+                icon.hidden = true;
             };
 
             const titleSpan = document.createElement('span');
@@ -187,27 +190,25 @@ export class TabSelectorController {
             copyWrap.appendChild(metaSpan);
 
             // Lock Button (Toggle State)
-            const lockBtn = document.createElement('button');
-            lockBtn.type = 'button';
-            lockBtn.className = 'tab-lock-only-btn';
-            lockBtn.disabled = !isControllable;
+            const lockButton = document.createElement('button');
+            lockButton.type = 'button';
+            lockButton.className = 'tab-lock-only-btn';
+            lockButton.classList.toggle('is-locked', isLocked);
+            lockButton.disabled = !isControllable;
 
-            // Icons
             const CLOSED_LOCK = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`;
             const OPEN_LOCK = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`;
 
             if (isLocked) {
-                lockBtn.innerHTML = CLOSED_LOCK;
-                lockBtn.title = t('currentTab');
-                lockBtn.style.color = 'var(--primary)';
+                lockButton.innerHTML = CLOSED_LOCK;
+                lockButton.title = t('currentTab');
             } else {
-                lockBtn.innerHTML = OPEN_LOCK;
-                lockBtn.title = t('controlTabInBackground');
-                lockBtn.style.color = 'var(--text-tertiary)';
+                lockButton.innerHTML = OPEN_LOCK;
+                lockButton.title = t('controlTabInBackground');
             }
 
-            lockBtn.onclick = (e) => {
-                e.stopPropagation();
+            lockButton.onclick = (clickEvent) => {
+                clickEvent.stopPropagation();
                 if (!isControllable) return;
 
                 this.updateTrigger(tab);
@@ -216,7 +217,7 @@ export class TabSelectorController {
                 this.close();
             };
 
-            item.onclick = (e) => {
+            item.onclick = () => {
                 if (!isControllable) return;
 
                 if (!isLocked) {
@@ -226,15 +227,15 @@ export class TabSelectorController {
                 if (this.onSelect) this.onSelect(tab.id, true);
                 this.close();
             };
-            item.onkeydown = (e) => {
-                if (e.key !== 'Enter' && e.key !== ' ') return;
-                e.preventDefault();
+            item.onkeydown = (keyEvent) => {
+                if (keyEvent.key !== 'Enter' && keyEvent.key !== ' ') return;
+                keyEvent.preventDefault();
                 item.click();
             };
 
             item.appendChild(icon);
             item.appendChild(copyWrap);
-            item.appendChild(lockBtn);
+            item.appendChild(lockButton);
 
             this.listEl.appendChild(item);
         });
@@ -249,10 +250,7 @@ export class TabSelectorController {
         if (tab && tab.favIconUrl) {
             const img = document.createElement('img');
             img.src = tab.favIconUrl;
-            img.style.width = '20px';
-            img.style.height = '20px';
-            img.style.borderRadius = '2px';
-            img.style.objectFit = 'contain';
+            img.className = 'browser-trigger-favicon';
 
             // Fallback to default icon if image fails to load
             img.onerror = () => {
@@ -261,8 +259,7 @@ export class TabSelectorController {
 
             this.triggerBtn.appendChild(img);
             this.triggerBtn.title = `Locked: ${tab.title}`;
-            // Optional: Add a small lock indicator overlay on the trigger button
-            this.triggerBtn.style.border = '1px solid var(--primary)';
+            this.triggerBtn.classList.add('tab-switcher-locked');
         } else {
             this.resetTrigger();
         }
@@ -272,7 +269,7 @@ export class TabSelectorController {
         if (!this.triggerBtn) return;
         this.triggerBtn.innerHTML = TemplateIcons.TAB_STACK;
         this.triggerBtn.title = t('selectTabTooltip') || 'Select a tab to control';
-        this.triggerBtn.style.border = 'none';
+        this.triggerBtn.classList.remove('tab-switcher-locked');
     }
 
     setFavicon(img, src, fallback) {

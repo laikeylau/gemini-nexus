@@ -94,4 +94,30 @@ describe('package-extension', () => {
             await rm(packageRoot, { recursive: true, force: true });
         }
     });
+
+    it('requires packaged settings HTML asset references to exist', async () => {
+        const packageRoot = await mkdtemp(path.join(tmpdir(), 'gemini-nexus-settings-package-'));
+
+        try {
+            await mkdir(path.join(packageRoot, 'settings'), { recursive: true });
+            await writeFile(
+                path.join(packageRoot, 'settings/index.html'),
+                '<script type="module" src="/assets/settings.js"></script>',
+                'utf8'
+            );
+
+            expect(
+                await findMissingPackagedAssetReferences(packageRoot, ['settings/index.html'])
+            ).toEqual(['settings/index.html -> assets/settings.js']);
+
+            await mkdir(path.join(packageRoot, 'assets'), { recursive: true });
+            await writeFile(path.join(packageRoot, 'assets/settings.js'), '', 'utf8');
+
+            expect(
+                await findMissingPackagedAssetReferences(packageRoot, ['settings/index.html'])
+            ).toEqual([]);
+        } finally {
+            await rm(packageRoot, { recursive: true, force: true });
+        }
+    });
 });

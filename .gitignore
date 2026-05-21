@@ -38,3 +38,4 @@ coverage/
 # Local design drafts
 assets/logo-concepts/
 .superpowers/
+.trellis/

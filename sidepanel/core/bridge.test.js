@@ -41,6 +41,7 @@ describe('MessageBridge model persistence', () => {
             },
             tabs: {
                 create: vi.fn(),
+                getCurrent: vi.fn((callback) => callback(undefined)),
             },
         };
     });
@@ -79,6 +80,215 @@ describe('MessageBridge model persistence', () => {
         });
 
         expect(state.save).toHaveBeenCalledWith('geminiModel', 'gemini-3-flash');
+    });
+
+    it('publishes tab host context when the sandbox UI is ready', async () => {
+        const frame = createFrame();
+        const state = createState();
+        const bridge = new MessageBridge(frame, state);
+        chrome.tabs.getCurrent.mockImplementation((callback) => callback({ id: 42 }));
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: {
+                action: 'UI_READY',
+            },
+        });
+
+        await Promise.resolve();
+
+        expect(state.markUiReady).toHaveBeenCalled();
+        expect(frame.postMessage).toHaveBeenCalledWith({
+            action: 'SET_HOST_CONTEXT',
+            payload: { isTab: true },
+        });
+    });
+
+    it('publishes sidepanel host context when Chrome does not expose a current tab', async () => {
+        const frame = createFrame();
+        const state = createState();
+        const bridge = new MessageBridge(frame, state);
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: {
+                action: 'UI_READY',
+            },
+        });
+
+        await Promise.resolve();
+
+        expect(frame.postMessage).toHaveBeenCalledWith({
+            action: 'SET_HOST_CONTEXT',
+            payload: { isTab: false },
+        });
+    });
+
+    it('ignores malformed messages from the sandbox frame', () => {
+        const frame = createFrame();
+        const state = createState();
+        const bridge = new MessageBridge(frame, state);
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: null,
+        });
+
+        expect(state.save).not.toHaveBeenCalled();
+        expect(state.markUiReady).not.toHaveBeenCalled();
+    });
+
+    it('opens the standalone settings page in a new tab from the Chrome side panel', async () => {
+        const frame = createFrame();
+        const state = createState();
+        const bridge = new MessageBridge(frame, state);
+        chrome.runtime.getURL = vi.fn((path) => `chrome-extension://id/${path}`);
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: {
+                action: 'OPEN_SETTINGS_PAGE',
+            },
+        });
+
+        await Promise.resolve();
+
+        expect(chrome.tabs.create).toHaveBeenCalledWith({
+            url: 'chrome-extension://id/settings/index.html',
+        });
+    });
+
+    it('opens settings inside the current sidepanel page when it is running as a tab', async () => {
+        const frame = createFrame();
+        const state = createState();
+        const bridge = new MessageBridge(frame, state);
+        chrome.tabs.getCurrent.mockImplementation((callback) => callback({ id: 42 }));
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: {
+                action: 'OPEN_SETTINGS_PAGE',
+            },
+        });
+
+        await Promise.resolve();
+
+        expect(frame.postMessage).toHaveBeenCalledWith({ action: 'OPEN_SETTINGS_MODAL' });
+        expect(chrome.tabs.create).not.toHaveBeenCalled();
+    });
+
+    it('saves the text selection blacklist preference', () => {
+        const frame = createFrame();
+        const state = createState();
+        const bridge = new MessageBridge(frame, state);
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: {
+                action: 'SAVE_TEXT_SELECTION_BLACKLIST',
+                payload: 'github.com\n*.google.com',
+            },
+        });
+
+        expect(state.save).toHaveBeenCalledWith(
+            'geminiTextSelectionBlacklist',
+            'github.com\n*.google.com'
+        );
+    });
+
+    it('restores the text selection blacklist preference', () => {
+        const frame = createFrame();
+        const state = createState();
+        const bridge = new MessageBridge(frame, state);
+        chrome.storage.local.get.mockImplementation((keys, callback) =>
+            callback({
+                geminiTextSelectionBlacklist: 'github.com',
+            })
+        );
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: {
+                action: 'GET_TEXT_SELECTION_BLACKLIST',
+            },
+        });
+
+        expect(chrome.storage.local.get).toHaveBeenCalledWith(
+            ['geminiTextSelectionBlacklist'],
+            expect.any(Function)
+        );
+        expect(frame.postMessage).toHaveBeenCalledWith({
+            action: 'RESTORE_TEXT_SELECTION_BLACKLIST',
+            payload: 'github.com',
+        });
+    });
+
+    it('saves and restores custom selection tools', () => {
+        const frame = createFrame();
+        const state = createState();
+        const bridge = new MessageBridge(frame, state);
+        const tools = [{ id: 'formal', name: 'Formal', prompt: 'Rewrite: {text}' }];
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: {
+                action: 'SAVE_CUSTOM_SELECTION_TOOLS',
+                payload: tools,
+            },
+        });
+
+        expect(state.save).toHaveBeenCalledWith('geminiCustomSelectionTools', tools);
+
+        chrome.storage.local.get.mockImplementation((keys, callback) =>
+            callback({ geminiCustomSelectionTools: tools })
+        );
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: {
+                action: 'GET_CUSTOM_SELECTION_TOOLS',
+            },
+        });
+
+        expect(chrome.storage.local.get).toHaveBeenCalledWith(
+            ['geminiCustomSelectionTools'],
+            expect.any(Function)
+        );
+        expect(frame.postMessage).toHaveBeenCalledWith({
+            action: 'RESTORE_CUSTOM_SELECTION_TOOLS',
+            payload: tools,
+        });
+    });
+
+    it('saves connection settings through the shared storage mapping', () => {
+        const frame = createFrame();
+        const state = createState();
+        const bridge = new MessageBridge(frame, state);
+
+        bridge.handleWindowMessage({
+            source: frame.getWindow(),
+            data: {
+                action: 'SAVE_CONNECTION_SETTINGS',
+                payload: {
+                    provider: 'official',
+                    officialModel: 'gemini-test',
+                    apiKey: 'key-test',
+                    mcpEnabled: true,
+                    mcpServers: [{ id: 'srv', url: 'http://localhost/mcp' }],
+                    mcpActiveServerId: 'srv',
+                },
+            },
+        });
+
+        expect(state.save).toHaveBeenCalledWith('geminiProvider', 'official');
+        expect(state.save).toHaveBeenCalledWith('geminiUseOfficialApi', true);
+        expect(state.save).toHaveBeenCalledWith('geminiOfficialModel', 'gemini-test');
+        expect(state.save).toHaveBeenCalledWith('geminiApiKey', 'key-test');
+        expect(state.save).toHaveBeenCalledWith('geminiMcpEnabled', true);
+        expect(state.save).toHaveBeenCalledWith('geminiMcpServers', [
+            { id: 'srv', url: 'http://localhost/mcp' },
+        ]);
+        expect(state.save).toHaveBeenCalledWith('geminiMcpActiveServerId', 'srv');
     });
 
     it('does not let a stale full-session save truncate a session updated in storage', async () => {

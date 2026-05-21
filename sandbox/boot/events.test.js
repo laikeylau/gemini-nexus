@@ -76,6 +76,32 @@ describe('app events', () => {
         expect(ui.updateStatus).toHaveBeenCalledWith('Choose a screen or window to capture...');
     });
 
+    it('opens settings in a standalone extension page', () => {
+        const app = {
+            handleNewChat: vi.fn(),
+            handleTabSwitcher: vi.fn(),
+            toggleBrowserControl: vi.fn(),
+            setCaptureMode: vi.fn(),
+            togglePageContext: vi.fn(),
+            handleModelChange: vi.fn(),
+            handleSendMessage: vi.fn(),
+            isGenerating: false,
+        };
+        const ui = {
+            inputFn: document.getElementById('prompt'),
+            updateStatus: vi.fn(),
+        };
+
+        document.body.insertAdjacentHTML('beforeend', '<button id="settings-btn"></button>');
+        bindAppEvents(app, ui);
+        document.getElementById('settings-btn').click();
+
+        expect(window.parent.postMessage).toHaveBeenCalledWith(
+            { action: 'OPEN_SETTINGS_PAGE' },
+            '*'
+        );
+    });
+
     it('uses a page-sized distance for tools row navigation', () => {
         expect(getToolsPageScrollDistance({ clientWidth: 320 })).toBe(296);
         expect(getToolsPageScrollDistance({ clientWidth: 120 })).toBe(160);

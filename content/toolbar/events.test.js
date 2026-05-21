@@ -76,6 +76,7 @@ describe('ToolbarEvents', () => {
     });
 
     it('saves the ask window dimensions after the visible window is resized', () => {
+        const askProviderSelect = document.createElement('select');
         const askModelSelect = document.createElement('select');
         const askInput = document.createElement('input');
         const askWindow = document.createElement('div');
@@ -104,6 +105,7 @@ describe('ToolbarEvents', () => {
         events.bind(
             {
                 askInput,
+                askProviderSelect,
                 askModelSelect,
                 askWindow,
                 resultText,
@@ -122,6 +124,160 @@ describe('ToolbarEvents', () => {
         ]);
 
         expect(saveWindowDimensions).toHaveBeenCalledWith(640, 520);
+        events.disconnect();
+    });
+
+    it('notifies the controller when the ask window provider changes', () => {
+        const askProviderSelect = document.createElement('select');
+        const askModelSelect = document.createElement('select');
+        const askInput = document.createElement('input');
+        const askWindow = document.createElement('div');
+        const resultText = document.createElement('div');
+        const handleProviderChange = vi.fn();
+
+        askProviderSelect.innerHTML = `
+            <option value="web">Web</option>
+            <option value="official">API</option>
+            <option value="openai">OpenAI</option>
+        `;
+        askProviderSelect.value = 'official';
+
+        const events = new window.GeminiToolbarEvents({
+            actions: {
+                triggerAction: vi.fn(),
+                cancelAsk: vi.fn(),
+                stopAsk: vi.fn(),
+            },
+            handleImageClick: vi.fn(),
+            handleImageHover: vi.fn(),
+            handleProviderChange,
+            handleModelChange: vi.fn(),
+            isWindowVisible: vi.fn(() => false),
+            isVisible: vi.fn(() => false),
+            hide: vi.fn(),
+            hideImageButton: vi.fn(),
+            saveWindowDimensions: vi.fn(),
+            codeCopy: {
+                handle: vi.fn(),
+            },
+        });
+
+        events.bind(
+            {
+                askInput,
+                askProviderSelect,
+                askModelSelect,
+                askWindow,
+                resultText,
+                buttons: {},
+            },
+            askWindow
+        );
+
+        askProviderSelect.dispatchEvent(new Event('change'));
+
+        expect(handleProviderChange).toHaveBeenCalledWith('official');
+        events.disconnect();
+    });
+
+    it('notifies the controller when translation target choices change', () => {
+        const askModelSelect = document.createElement('select');
+        const askInput = document.createElement('input');
+        const askWindow = document.createElement('div');
+        const resultText = document.createElement('div');
+        const translationTargets = document.createElement('div');
+        const handleTranslationTargetsChange = vi.fn();
+
+        translationTargets.innerHTML = `
+            <label><input type="checkbox" name="translation-target" value="auto"></label>
+            <label><input type="checkbox" name="translation-target" value="zh-Hans" checked></label>
+            <label><input type="checkbox" name="translation-target" value="ja" checked></label>
+        `;
+
+        const events = new window.GeminiToolbarEvents({
+            actions: {
+                triggerAction: vi.fn(),
+                cancelAsk: vi.fn(),
+                stopAsk: vi.fn(),
+            },
+            handleImageClick: vi.fn(),
+            handleImageHover: vi.fn(),
+            handleModelChange: vi.fn(),
+            handleTranslationTargetsChange,
+            isWindowVisible: vi.fn(() => false),
+            isVisible: vi.fn(() => false),
+            hide: vi.fn(),
+            hideImageButton: vi.fn(),
+            saveWindowDimensions: vi.fn(),
+            codeCopy: {
+                handle: vi.fn(),
+            },
+        });
+
+        events.bind(
+            {
+                askInput,
+                askModelSelect,
+                askWindow,
+                resultText,
+                translationTargets,
+                buttons: {},
+            },
+            askWindow
+        );
+
+        translationTargets
+            .querySelector('[value="ja"]')
+            .dispatchEvent(new Event('change', { bubbles: true }));
+
+        expect(handleTranslationTargetsChange).toHaveBeenCalledWith(['zh-Hans', 'ja']);
+        events.disconnect();
+    });
+
+    it('opens and closes the translation target dropdown from the trigger', () => {
+        const askModelSelect = document.createElement('select');
+        const askInput = document.createElement('input');
+        const askWindow = document.createElement('div');
+        const resultText = document.createElement('div');
+        const translationTargetTrigger = document.createElement('button');
+        const toggleTranslationTargetDropdown = vi.fn();
+
+        const events = new window.GeminiToolbarEvents({
+            actions: {
+                triggerAction: vi.fn(),
+                cancelAsk: vi.fn(),
+                stopAsk: vi.fn(),
+            },
+            handleImageClick: vi.fn(),
+            handleImageHover: vi.fn(),
+            handleModelChange: vi.fn(),
+            handleTranslationTargetsChange: vi.fn(),
+            toggleTranslationTargetDropdown,
+            isWindowVisible: vi.fn(() => false),
+            isVisible: vi.fn(() => false),
+            hide: vi.fn(),
+            hideImageButton: vi.fn(),
+            saveWindowDimensions: vi.fn(),
+            codeCopy: {
+                handle: vi.fn(),
+            },
+        });
+
+        events.bind(
+            {
+                askInput,
+                askModelSelect,
+                askWindow,
+                resultText,
+                translationTargetTrigger,
+                buttons: {},
+            },
+            askWindow
+        );
+
+        translationTargetTrigger.click();
+
+        expect(toggleTranslationTargetDropdown).toHaveBeenCalledWith();
         events.disconnect();
     });
 

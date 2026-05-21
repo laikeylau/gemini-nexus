@@ -4,6 +4,10 @@ import {
     saveLanguageToStorage,
     saveTextSelectionToStorage,
     requestTextSelectionFromStorage,
+    saveTextSelectionBlacklistToStorage,
+    requestTextSelectionBlacklistFromStorage,
+    saveCustomSelectionToolsToStorage,
+    requestCustomSelectionToolsFromStorage,
     saveSidebarBehaviorToStorage,
     saveSidePanelScopeToStorage,
     saveImageToolsToStorage,
@@ -18,6 +22,8 @@ import {
 } from '../../../shared/messaging/index.js';
 import { formatT, setLanguagePreference, getLanguagePreference, t } from '../../core/i18n.js';
 import { SettingsView } from './view.js';
+import { compareVersionStrings, fetchGithubMetadata } from './github_metadata.js';
+import { formatLogDownloadText } from './log_download.js';
 import {
     DEFAULT_CONTEXT_MODE,
     DEFAULT_CONTEXT_RECENT_TURNS,
@@ -32,6 +38,7 @@ import {
 } from '../../../shared/config/constants.js';
 import { createDefaultMcpServer } from '../../../shared/settings/connection.js';
 import { normalizeOpenAIWebSearchSettings } from '../../../shared/settings/openai.js';
+import { normalizeCustomSelectionTools } from '../../../shared/settings/selection_tools.js';
 
 export class SettingsController {
     constructor(callbacks) {
@@ -42,6 +49,8 @@ export class SettingsController {
         this.shortcuts = { ...this.defaultShortcuts };
 
         this.textSelectionEnabled = true;
+        this.textSelectionBlacklist = '';
+        this.customSelectionTools = [];
         this.imageToolsEnabled = true;
         this.accountIndices = '0';
         this.sidebarBehavior = 'auto';
@@ -103,19 +112,11 @@ export class SettingsController {
             onDownloadLogs: () => this.downloadLogs(),
         });
 
-        // External Trigger Binding
-        const trigger = document.getElementById('settings-btn');
-        if (trigger) {
-            trigger.addEventListener('click', () => {
-                this.open();
-                if (this.callbacks.onOpen) this.callbacks.onOpen();
-            });
-        }
-
         // Listen for log data
-        window.addEventListener('message', (e) => {
-            if (e.data.action === 'BACKGROUND_MESSAGE' && e.data.payload && e.data.payload.logs) {
-                this.saveLogFile(e.data.payload.logs);
+        window.addEventListener('message', (messageEvent) => {
+            const { action, payload } = messageEvent.data || {};
+            if (action === 'BACKGROUND_MESSAGE' && payload?.logs) {
+                this.saveLogFile(payload.logs);
             }
         });
     }
@@ -128,11 +129,22 @@ export class SettingsController {
         this.view.close();
     }
 
+    normalizeAccountIndices(value) {
+        const cleaned = String(value || '')
+            .split(',')
+            .map((part) => part.trim())
+            .filter((part) => /^\d+$/.test(part))
+            .join(',');
+        return cleaned || '0';
+    }
+
     handleOpen() {
         // Sync state to view
         this.view.setShortcuts(this.shortcuts);
         this.view.setLanguageValue(getLanguagePreference());
         this.view.setToggles(this.textSelectionEnabled, this.imageToolsEnabled);
+        this.view.setTextSelectionBlacklist(this.textSelectionBlacklist);
+        this.view.setCustomSelectionTools(this.customSelectionTools);
         this.view.setAccountIndices(this.accountIndices);
         this.view.setSidebarBehavior(this.sidebarBehavior);
         this.view.setSidePanelScope(this.sidePanelScope);
@@ -141,12 +153,14 @@ export class SettingsController {
 
         // Refresh from storage
         requestTextSelectionFromStorage();
+        requestTextSelectionBlacklistFromStorage();
+        requestCustomSelectionToolsFromStorage();
         requestImageToolsFromStorage();
         requestAccountIndicesFromStorage();
         requestContextSettingsFromStorage();
         requestConnectionSettingsFromStorage();
 
-        this.fetchGithubData();
+        this.refreshGithubMetadata();
     }
 
     saveSettings(data) {
@@ -162,15 +176,21 @@ export class SettingsController {
         this.textSelectionEnabled = data.textSelection;
         saveTextSelectionToStorage(this.textSelectionEnabled);
 
+        this.textSelectionBlacklist = data.textSelectionBlacklist || '';
+        saveTextSelectionBlacklistToStorage(this.textSelectionBlacklist);
+
+        this.customSelectionTools = normalizeCustomSelectionTools(data.customSelectionTools);
+        this.view.setCustomSelectionTools(this.customSelectionTools);
+        saveCustomSelectionToolsToStorage(this.customSelectionTools);
+
         this.imageToolsEnabled = data.imageTools;
         saveImageToolsToStorage(this.imageToolsEnabled);
 
         // Accounts
-        let accountIndices = data.accountIndices.trim();
-        if (!accountIndices) accountIndices = '0';
+        const accountIndices = this.normalizeAccountIndices(data.accountIndices);
         this.accountIndices = accountIndices;
-        const cleaned = accountIndices.replace(/[^0-9,]/g, '');
-        saveAccountIndicesToStorage(cleaned);
+        this.view.setAccountIndices(accountIndices);
+        saveAccountIndicesToStorage(accountIndices);
 
         this.sidebarBehavior = data.sidebarBehavior || 'auto';
         saveSidebarBehaviorToStorage(this.sidebarBehavior);
@@ -234,13 +254,7 @@ export class SettingsController {
             return;
         }
 
-        const text = logs
-            .map((l) => {
-                const time = new Date(l.timestamp).toISOString();
-                const dataStr = l.data ? ` | Data: ${JSON.stringify(l.data)}` : '';
-                return `[${time}] [${l.level}] [${l.context}] ${l.message}${dataStr}`;
-            })
-            .join('\n');
+        const text = formatLogDownloadText(logs);
 
         // Send to parent to handle download (Sandbox restriction workaround)
         window.parent.postMessage(
@@ -288,6 +302,16 @@ export class SettingsController {
     updateTextSelection(enabled) {
         this.textSelectionEnabled = enabled;
         this.view.setToggles(this.textSelectionEnabled, this.imageToolsEnabled);
+    }
+
+    updateTextSelectionBlacklist(value) {
+        this.textSelectionBlacklist = value || '';
+        this.view.setTextSelectionBlacklist(this.textSelectionBlacklist);
+    }
+
+    updateCustomSelectionTools(tools) {
+        this.customSelectionTools = normalizeCustomSelectionTools(tools);
+        this.view.setCustomSelectionTools(this.customSelectionTools);
     }
 
     updateImageTools(enabled) {
@@ -382,48 +406,24 @@ export class SettingsController {
         this.view.setAccountIndices(this.accountIndices);
     }
 
-    async fetchGithubData() {
+    async refreshGithubMetadata() {
         if (this.view.hasFetchedStars()) return;
 
         try {
-            const [starRes, releaseRes] = await Promise.all([
-                fetch('https://api.github.com/repos/yeahhe365/Gemini-Nexus'),
-                fetch('https://api.github.com/repos/yeahhe365/Gemini-Nexus/releases/latest'),
-            ]);
+            const { stars, latestVersion } = await fetchGithubMetadata();
 
-            if (starRes.ok) {
-                const data = await starRes.json();
-                this.view.displayStars(data.stargazers_count);
+            if (stars != null) {
+                this.view.displayStars(stars);
             }
 
-            if (releaseRes.ok) {
-                const data = await releaseRes.json();
-                const latestVersion = data.tag_name; // e.g. "v4.2.0"
+            if (latestVersion) {
                 const currentVersion = this.view.getCurrentVersion() || 'v0.0.0';
-
-                const isNewer = this.compareVersions(latestVersion, currentVersion) > 0;
+                const isNewer = compareVersionStrings(latestVersion, currentVersion) > 0;
                 this.view.displayUpdateStatus(latestVersion, currentVersion, isNewer);
             }
         } catch (error) {
             console.warn('GitHub fetch failed', error);
             this.view.displayStars(null);
         }
-    }
-
-    compareVersions(v1, v2) {
-        // Remove 'v' prefix
-        const clean1 = v1.replace(/^v/, '');
-        const clean2 = v2.replace(/^v/, '');
-
-        const parts1 = clean1.split('.').map(Number);
-        const parts2 = clean2.split('.').map(Number);
-
-        for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
-            const num1 = parts1[i] || 0;
-            const num2 = parts2[i] || 0;
-            if (num1 > num2) return 1;
-            if (num1 < num2) return -1;
-        }
-        return 0;
     }
 }

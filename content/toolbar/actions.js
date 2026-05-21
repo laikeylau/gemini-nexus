@@ -11,10 +11,35 @@ class ToolbarActions {
         this.ui = uiController;
         this.lastRequest = null;
         this.pendingImageChat = null;
+        this.lastTranslationRequest = null;
     }
 
     get t() {
         return window.GeminiToolbarStrings;
+    }
+
+    getTranslationTargets() {
+        return (
+            this.ui.getSelectedTranslationTargets?.() ||
+            this.t.defaultTranslationTargets || ['auto']
+        );
+    }
+
+    buildImageTranslatePrompt() {
+        const prompt = this.t.prompts.imageTranslate;
+        return typeof prompt === 'function' ? prompt(this.getTranslationTargets()) : prompt;
+    }
+
+    buildTextTranslatePrompt(selection) {
+        return this.t.prompts.textTranslate(selection, this.getTranslationTargets());
+    }
+
+    buildCustomSelectionPrompt(tool, selection) {
+        const template = String(tool?.prompt || '').trim();
+        if (template.includes('{text}')) {
+            return template.replaceAll('{text}', selection);
+        }
+        return `${template}\n\n${selection}`;
     }
 
     /**
@@ -37,7 +62,7 @@ class ToolbarActions {
                 break;
             case 'translate':
                 title = strings.titles.translate;
-                prompt = strings.prompts.imageTranslate;
+                prompt = this.buildImageTranslatePrompt();
                 loadingMessage = strings.loading.translate;
                 inputValue = strings.inputs.translate;
                 break;
@@ -97,6 +122,7 @@ class ToolbarActions {
         }
 
         await this.ui.showAskWindow(rect, loadingMessage, title);
+        this.ui.setTranslationTargetMode?.(mode === 'translate');
         this.ui.showLoading(loadingMessage);
         this.ui.setInputValue(inputValue);
 
@@ -115,10 +141,13 @@ class ToolbarActions {
         };
 
         this.lastRequest = message;
+        this.lastTranslationRequest =
+            mode === 'translate' ? { type: 'image', promptType: 'imageTranslate' } : null;
         chrome.runtime.sendMessage(message);
     }
 
     async handleImageChat(imageDataUrl, rect) {
+        this.lastTranslationRequest = null;
         this.pendingImageChat = {
             url: imageDataUrl,
         };
@@ -139,7 +168,7 @@ class ToolbarActions {
         let prompt, title, inputPlaceholder, loadingMessage;
 
         if (actionType === 'translate') {
-            prompt = strings.prompts.textTranslate(selection);
+            prompt = this.buildTextTranslatePrompt(selection);
             title = strings.titles.textTranslate;
             inputPlaceholder = strings.inputs.textTranslate;
             loadingMessage = strings.loading.translate;
@@ -167,9 +196,39 @@ class ToolbarActions {
 
         this.ui.hide();
         await this.ui.showAskWindow(rect, selection, title, mousePoint);
+        this.ui.setTranslationTargetMode?.(actionType === 'translate');
         this.ui.showLoading(loadingMessage);
 
         this.ui.setInputValue(inputPlaceholder);
+
+        const message = {
+            action: 'QUICK_ASK',
+            text: prompt,
+            model,
+        };
+
+        this.lastRequest = message;
+        this.lastTranslationRequest =
+            actionType === 'translate' ? { type: 'text', selection } : null;
+        chrome.runtime.sendMessage(message);
+    }
+
+    async handleCustomSelectionTool(
+        tool,
+        selection,
+        rect,
+        model = 'gemini-3-flash',
+        mousePoint = null
+    ) {
+        const title = String(tool?.name || '').trim() || 'Custom';
+        const prompt = this.buildCustomSelectionPrompt(tool, selection);
+
+        this.lastTranslationRequest = null;
+        this.ui.hide();
+        await this.ui.showAskWindow(rect, selection, title, mousePoint);
+        this.ui.setTranslationTargetMode?.(false);
+        this.ui.showLoading(this.t.loading.customSelectionTool || this.t.loading.analyze);
+        this.ui.setInputValue(title);
 
         const message = {
             action: 'QUICK_ASK',
@@ -183,6 +242,7 @@ class ToolbarActions {
 
     handleSubmitAsk(question, context, sessionId = null, model = 'gemini-3-flash') {
         this.ui.showLoading();
+        this.lastTranslationRequest = null;
 
         if (this.pendingImageChat) {
             const targetModel = window.GeminiWebModels.resolveImagePromptModel({
@@ -234,6 +294,14 @@ class ToolbarActions {
 
         const currentModel = this.ui.getSelectedModel();
         const retryRequest = { ...this.lastRequest };
+        if (this.lastTranslationRequest?.type === 'text') {
+            retryRequest.text = this.buildTextTranslatePrompt(
+                this.lastTranslationRequest.selection
+            );
+        } else if (this.lastTranslationRequest?.type === 'image') {
+            retryRequest.text = this.buildImageTranslatePrompt();
+        }
+
         if (currentModel) {
             retryRequest.model =
                 retryRequest.action === 'QUICK_ASK_IMAGE'
@@ -253,6 +321,7 @@ class ToolbarActions {
 
     handleCancel() {
         this.pendingImageChat = null;
+        this.lastTranslationRequest = null;
         chrome.runtime.sendMessage({ action: 'CANCEL_PROMPT' });
     }
 

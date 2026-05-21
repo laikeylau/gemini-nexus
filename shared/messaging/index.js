@@ -62,6 +62,34 @@ export function saveTextSelectionToStorage(enabled) {
     );
 }
 
+export function requestTextSelectionBlacklistFromStorage() {
+    window.parent.postMessage({ action: 'GET_TEXT_SELECTION_BLACKLIST' }, '*');
+}
+
+export function saveTextSelectionBlacklistToStorage(value) {
+    window.parent.postMessage(
+        {
+            action: 'SAVE_TEXT_SELECTION_BLACKLIST',
+            payload: value,
+        },
+        '*'
+    );
+}
+
+export function requestCustomSelectionToolsFromStorage() {
+    window.parent.postMessage({ action: 'GET_CUSTOM_SELECTION_TOOLS' }, '*');
+}
+
+export function saveCustomSelectionToolsToStorage(tools) {
+    window.parent.postMessage(
+        {
+            action: 'SAVE_CUSTOM_SELECTION_TOOLS',
+            payload: Array.isArray(tools) ? tools : [],
+        },
+        '*'
+    );
+}
+
 export function requestImageToolsFromStorage() {
     window.parent.postMessage({ action: 'GET_IMAGE_TOOLS' }, '*');
 }

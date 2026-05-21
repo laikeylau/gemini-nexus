@@ -5,6 +5,7 @@ import { createGeneratedImagesGrid, createUserImagesGrid } from './message_media
 import { cleanupStructuredSourceText, createSourcesElement } from './sources.js';
 import { hasDisplayableThoughts, hasDisplayableText } from '../core/displayable_content.js';
 import { t } from '../core/i18n.js';
+import { createPrefixedId } from '../../shared/utils/index.js';
 
 const TOOL_MESSAGE_KINDS = new Set(['tool-output', 'tool-status']);
 
@@ -282,7 +283,7 @@ export function appendMessage(
             thoughtsDiv.className = 'thoughts-container';
             thoughtsDiv.hidden = !hasDisplayableThoughts(currentThoughts);
 
-            const regionId = `${THOUGHTS_REGION_PREFIX}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            const regionId = createPrefixedId(THOUGHTS_REGION_PREFIX);
 
             thoughtsToggle = document.createElement('button');
             thoughtsToggle.type = 'button';

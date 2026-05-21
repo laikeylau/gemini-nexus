@@ -18,6 +18,13 @@ export function generateUUID() {
         .toUpperCase();
 }
 
+export function createPrefixedId(prefix) {
+    const safePrefix = String(prefix || 'id')
+        .replace(/[^A-Za-z0-9_-]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+    return `${safePrefix || 'id'}_${generateUUID()}`;
+}
+
 export async function dataUrlToBlob(dataUrl) {
     try {
         const parts = dataUrl.split(',');

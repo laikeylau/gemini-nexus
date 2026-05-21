@@ -7,6 +7,7 @@ import { SidePanelScopeManager } from './managers/sidepanel_scope_manager.js';
 import { setupContextMenus } from './menus.js';
 import { setupMessageListener } from './messages.js';
 import { keepAliveManager } from './managers/keep_alive.js';
+import { setupContentScriptInjection } from './content_injection.js';
 
 // Initialize LogManager
 const logManager = new LogManager();
@@ -38,6 +39,7 @@ chrome.action.onClicked.addListener((tab) => {
 
 // Initialize Modules
 setupContextMenus();
+setupContentScriptInjection();
 setupMessageListener(
     sessionManager,
     imageManager,

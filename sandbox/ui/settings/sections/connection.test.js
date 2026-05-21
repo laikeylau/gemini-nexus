@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { describe, expect, it } from 'vitest';
-import { ConnectionSection } from './connection.js';
+import { ConnectionSection, createMcpServerId } from './connection.js';
 
 function createConnectionSectionHarness() {
     const summary = document.createElement('div');
@@ -34,6 +34,13 @@ function createConnectionSectionHarness() {
 }
 
 describe('ConnectionSection MCP tool cache', () => {
+    it('creates readable unique MCP server ids', () => {
+        const id = createMcpServerId();
+
+        expect(id).toMatch(/^srv_[0-9A-F-]{8,}$/);
+        expect(createMcpServerId()).not.toBe(id);
+    });
+
     it('does not show a stale tool-list response after the server URL changed', () => {
         const { list, section, summary } = createConnectionSectionHarness();
 
@@ -83,5 +90,24 @@ describe('ConnectionSection provider visibility', () => {
         section.updateMcpVisibility(false);
 
         expect(section.elements.mcpFields.hidden).toBe(true);
+    });
+
+    it('uses a class for MCP test error state', () => {
+        const status = document.createElement('div');
+        const section = Object.create(ConnectionSection.prototype);
+        section.elements = {
+            mcpTestStatus: status,
+        };
+
+        section.setMcpTestStatus('Cannot connect', true);
+
+        expect(status.textContent).toBe('Cannot connect');
+        expect(status.classList.contains('is-error')).toBe(true);
+        expect(status.hasAttribute('style')).toBe(false);
+
+        section.setMcpTestStatus('Connected', false);
+
+        expect(status.classList.contains('is-error')).toBe(false);
+        expect(status.hasAttribute('style')).toBe(false);
     });
 });

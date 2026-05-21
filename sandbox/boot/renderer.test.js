@@ -3,11 +3,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { initRendererMode } from './renderer.js';
 
+const mockIds = vi.hoisted(() => ({
+    next: 1,
+}));
+
 vi.mock('./loader.js', () => ({
     loadLibs: vi.fn(),
 }));
 
 vi.mock('../../shared/utils/index.js', () => ({
+    createPrefixedId: (prefix) => `${prefix}_${mockIds.next++}`,
     getHighResImageUrl: (url) => `${url}?highres=1`,
 }));
 
@@ -19,6 +24,7 @@ vi.mock('../../shared/media/watermark_remover.js', () => ({
 
 describe('renderer mode', () => {
     beforeEach(() => {
+        mockIds.next = 1;
         document.body.innerHTML = '<p>old ui</p>';
     });
 
@@ -63,5 +69,13 @@ describe('renderer mode', () => {
                 url: 'https://example.test/two.png?highres=1',
             },
         ]);
+    });
+
+    it('ignores non-object renderer messages', () => {
+        initRendererMode();
+
+        expect(() => {
+            window.dispatchEvent(new MessageEvent('message', { data: null }));
+        }).not.toThrow();
     });
 });

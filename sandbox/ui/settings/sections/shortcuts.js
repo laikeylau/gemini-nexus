@@ -11,6 +11,7 @@ export class ShortcutsSection {
             inputQuickAsk: get('shortcut-quick-ask'),
             inputOpenPanel: get('shortcut-open-panel'),
             inputBrowserControl: get('shortcut-browser-control'),
+            inputOcrCapture: get('shortcut-ocr-capture'),
         };
     }
 
@@ -18,6 +19,7 @@ export class ShortcutsSection {
         this.setupShortcutInput(this.elements.inputQuickAsk);
         this.setupShortcutInput(this.elements.inputOpenPanel);
         this.setupShortcutInput(this.elements.inputBrowserControl);
+        this.setupShortcutInput(this.elements.inputOcrCapture);
     }
 
     setupShortcutInput(inputEl) {
@@ -44,16 +46,22 @@ export class ShortcutsSection {
     setData(shortcuts) {
         if (this.elements.inputQuickAsk) this.elements.inputQuickAsk.value = shortcuts.quickAsk;
         if (this.elements.inputOpenPanel) this.elements.inputOpenPanel.value = shortcuts.openPanel;
-        if (this.elements.inputBrowserControl)
+        if (this.elements.inputBrowserControl) {
             this.elements.inputBrowserControl.value = shortcuts.browserControl || 'Ctrl+B';
+        }
+        if (this.elements.inputOcrCapture) {
+            this.elements.inputOcrCapture.value = shortcuts.ocrCapture || 'Alt+O';
+        }
     }
 
     getData() {
-        const { inputQuickAsk, inputOpenPanel, inputBrowserControl } = this.elements;
+        const { inputQuickAsk, inputOpenPanel, inputBrowserControl, inputOcrCapture } =
+            this.elements;
         return {
             quickAsk: inputQuickAsk ? inputQuickAsk.value : null,
             openPanel: inputOpenPanel ? inputOpenPanel.value : null,
             browserControl: inputBrowserControl ? inputBrowserControl.value : 'Ctrl+B',
+            ocrCapture: inputOcrCapture ? inputOcrCapture.value : 'Alt+O',
         };
     }
 }

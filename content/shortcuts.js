@@ -1,10 +1,20 @@
 (function () {
+    if (window.GeminiNexusPageGuard?.isDisabled) return;
+
     const DEFAULT_SHORTCUTS = {
         quickAsk: 'Ctrl+G',
         openPanel: 'Alt+S',
         browserControl: 'Ctrl+B',
+        ocrCapture: 'Alt+O',
     };
     const MODIFIER_KEYS = ['ctrl', 'alt', 'shift', 'meta', 'command'];
+
+    function isEditableShortcutTarget(target) {
+        if (!(target instanceof Element)) return false;
+        if (target.closest('[contenteditable=""], [contenteditable="true"]')) return true;
+        const tagName = target.tagName.toLowerCase();
+        return tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+    }
 
     class ShortcutManager {
         constructor() {
@@ -37,10 +47,24 @@
         }
 
         handleKeydown(event) {
+            if (isEditableShortcutTarget(event.target)) return;
+
             if (this.match(event, this.appShortcuts.openPanel)) {
                 event.preventDefault();
                 event.stopPropagation();
-                chrome.runtime.sendMessage({ action: 'OPEN_SIDE_PANEL' });
+                Promise.resolve(chrome.runtime.sendMessage({ action: 'OPEN_SIDE_PANEL' }))
+                    .then((response) => {
+                        if (response?.status === 'error') {
+                            this.toolbarController?.showExtensionError?.(
+                                response.error || 'Could not open side panel'
+                            );
+                        }
+                    })
+                    .catch((error) => {
+                        this.toolbarController?.showExtensionError?.(
+                            error?.message || 'Could not open side panel'
+                        );
+                    });
                 return;
             }
 
@@ -57,6 +81,17 @@
                 event.preventDefault();
                 event.stopPropagation();
                 chrome.runtime.sendMessage({ action: 'TOGGLE_SIDE_PANEL_CONTROL' });
+                return;
+            }
+
+            if (this.match(event, this.appShortcuts.ocrCapture)) {
+                event.preventDefault();
+                event.stopPropagation();
+                chrome.runtime.sendMessage({
+                    action: 'INITIATE_CAPTURE',
+                    mode: 'ocr',
+                    source: 'local',
+                });
                 return;
             }
         }

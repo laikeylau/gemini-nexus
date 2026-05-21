@@ -1,4 +1,4 @@
-import { getActiveTabContent } from '../utils.js';
+import { getActiveTabContent } from '../active_tab_content.js';
 import { BROWSER_CONTROL_PREAMBLE } from './preamble.js';
 
 export class PromptBuilder {

@@ -11,12 +11,9 @@ import {
 } from './message_results.js';
 import { hasMatchingReplyMedia } from './message_matchers.js';
 import {
-    buildToolOutputHistoryText,
-    getToolOutputKey,
-    getToolOutputStatus,
-    getToolStatusKey,
-    hasPersistedToolOutput,
-} from './message_tools.js';
+    handleToolCallStatusMessage as handleToolCallStatusMessageRequest,
+    handleToolOutputMessage as handleToolOutputMessageRequest,
+} from './message_tool_messages.js';
 
 export class MessageHandler {
     constructor(sessionManager, uiController, imageManager, appController) {
@@ -343,117 +340,11 @@ export class MessageHandler {
     }
 
     handleToolOutputMessage(request) {
-        if (!this.isGeneratingSessionMessage(request)) return;
-        const sessionId = this.getRequestSessionId(request);
-        const toolCallText = this.getRequestToolCallText(request, sessionId);
-
-        if (!this.isCurrentSessionMessage(request)) {
-            this.clearStreamState(sessionId);
-            return;
-        }
-
-        this.finalizeActiveStream({
-            text: this.getStreamRawText(sessionId) || request.toolCallText,
-            thoughts: this.getStreamThoughts(sessionId),
-            clearToolCallJson: true,
-        });
-        this.clearStreamState(sessionId);
-
-        const session = this.sessionManager.getCurrentSession();
-        const renderedKey = getToolOutputKey(request);
-        if (renderedKey && this.hasRenderedToolOutput(renderedKey)) {
-            this.removeRenderedToolStatus(getToolStatusKey(request));
-            return;
-        }
-
-        this.removeRenderedToolStatus(getToolStatusKey(request));
-
-        if (session && !hasPersistedToolOutput(session, request)) {
-            session.messages.push({
-                role: 'user',
-                text: buildToolOutputHistoryText(request),
-                image: request.images || null,
-                kind: 'tool-output',
-                toolName: request.toolName || '',
-                toolStatus: request.status || getToolOutputStatus(request),
-                toolCallText,
-                toolStep: request.step,
-                toolCallIndex: request.callIndex,
-                toolCallCount: request.callCount,
-            });
-            session.timestamp = Date.now();
-            this.app.sessionFlow.refreshHistoryUI();
-        }
-
-        appendMessage(
-            this.ui.historyDiv,
-            request.text || '',
-            'user',
-            request.images || null,
-            null,
-            null,
-            {
-                kind: 'tool-output',
-                toolName: request.toolName || '',
-                toolStatus: request.status || getToolOutputStatus(request),
-                toolCallText,
-                step: request.step,
-                callIndex: request.callIndex,
-                callCount: request.callCount,
-                toolOutputKey: renderedKey,
-            }
-        );
-        this.ui.scrollToBottom();
+        return handleToolOutputMessageRequest(this, request);
     }
 
     handleToolCallStatusMessage(request) {
-        if (!this.isGeneratingSessionMessage(request)) return;
-        if (!this.isCurrentSessionMessage(request)) return;
-
-        const sessionId = this.getRequestSessionId(request);
-        const toolCallText = this.getRequestToolCallText(request, sessionId);
-        this.finalizeActiveStream({
-            text: this.getStreamRawText(sessionId) || request.toolCallText,
-            thoughts: this.getStreamThoughts(sessionId),
-            clearToolCallJson: true,
-        });
-        this.clearStreamState(sessionId);
-
-        const statusKey = request.statusKey || getToolStatusKey(request);
-        const existing = this.findRenderedToolStatus(statusKey);
-        if (existing && typeof existing.update === 'function') {
-            existing.update(request.text || '', null, {
-                toolStatus: request.status || 'completed',
-                toolCallText,
-                callIndex: request.callIndex,
-                callCount: request.callCount,
-                isCollapsed: true,
-            });
-            this.ui.scrollToBottom();
-            return;
-        }
-
-        const controller = appendMessage(
-            this.ui.historyDiv,
-            request.text || '',
-            'user',
-            null,
-            null,
-            null,
-            {
-                kind: 'tool-status',
-                toolName: request.toolName || '',
-                toolStatus: request.status || 'running',
-                toolCallText,
-                callIndex: request.callIndex,
-                callCount: request.callCount,
-                toolStatusKey: statusKey,
-                isCollapsed: true,
-            }
-        );
-
-        this.ui.scrollToBottom();
-        return controller;
+        return handleToolCallStatusMessageRequest(this, request);
     }
 
     finalizeActiveStream(state = {}) {
@@ -525,32 +416,6 @@ export class MessageHandler {
         if (split.hasToolCall) return split.toolCallText;
         if (isToolCallOnlyText(requestText, { allowPartial: true })) return requestText.trim();
         return this.getStreamToolCallText(sessionId);
-    }
-
-    hasRenderedToolOutput(key) {
-        if (!key || !this.ui || !this.ui.historyDiv) return false;
-        return Array.from(this.ui.historyDiv.querySelectorAll('[data-tool-output-key]')).some(
-            (element) => element.dataset.toolOutputKey === key
-        );
-    }
-
-    findRenderedToolStatus(key) {
-        if (!key || !this.ui || !this.ui.historyDiv) return null;
-        const element = Array.from(
-            this.ui.historyDiv.querySelectorAll('[data-tool-status-key]')
-        ).find((candidate) => candidate.dataset.toolStatusKey === key);
-        return element?.__messageController || null;
-    }
-
-    removeRenderedToolStatus(key) {
-        const controller = this.findRenderedToolStatus(key);
-        if (!controller) return;
-        if (typeof controller.dispose === 'function') {
-            controller.dispose();
-        }
-        if (controller.div && typeof controller.div.remove === 'function') {
-            controller.div.remove();
-        }
     }
 
     handleImageResult(request) {

@@ -1,3 +1,10 @@
+.user-images-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
 .msg img.chat-image {
     max-width: 100%;
     width: auto;
@@ -10,6 +17,16 @@
     border: 1px solid var(--border-color);
     transition: transform 0.2s;
     object-fit: contain;
+}
+
+.msg img.chat-image.chat-image-compact,
+img.chat-image.chat-image-compact {
+    max-width: 150px;
+    max-height: 200px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    background: rgba(0, 0, 0, 0.05);
 }
 
 .msg img.chat-image:hover {
@@ -89,6 +106,16 @@
     transition: transform 0.2s;
     object-fit: contain;
     background: var(--bg-input);
+}
+
+.generated-image.loading {
+    display: block;
+    min-height: 200px;
+    background: #f0f4f9;
+}
+
+.generated-image.load-error {
+    background: #ffebee;
 }
 
 .generated-image:hover {

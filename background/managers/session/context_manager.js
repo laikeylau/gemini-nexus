@@ -4,7 +4,7 @@ import {
     DEFAULT_CONTEXT_MODE,
     DEFAULT_CONTEXT_RECENT_TURNS,
 } from '../../../shared/config/constants.js';
-import { countUserAttachmentsByType } from '../../../shared/attachments/index.js';
+import { describeMessageAttachmentMarkers } from '../../../shared/attachments/index.js';
 import { getSessionContextSummary, updateSessionContextSummary } from '../history_manager.js';
 
 const MIN_RECENT_TURNS = 1;
@@ -116,27 +116,7 @@ function compactText(text) {
 }
 
 function describeAttachments(message) {
-    const markers = [];
-    const userAttachmentCounts = countUserAttachmentsByType(message?.attachments);
-    const legacyImages =
-        userAttachmentCounts.images === 0 && userAttachmentCounts.files === 0
-            ? Array.isArray(message?.image)
-                ? message.image.length
-                : 0
-            : 0;
-    const imageCount = userAttachmentCounts.images + legacyImages;
-    if (imageCount > 0) {
-        markers.push(`[${imageCount} image attachment(s)]`);
-    }
-    if (userAttachmentCounts.files > 0) {
-        markers.push(`[${userAttachmentCounts.files} file attachment(s)]`);
-    }
-    if (Array.isArray(message?.generatedImages) && message.generatedImages.length > 0) {
-        markers.push(`[${message.generatedImages.length} generated image(s)]`);
-    }
-    if (Array.isArray(message?.sources) && message.sources.length > 0) {
-        markers.push(`[${message.sources.length} source link(s)]`);
-    }
+    const markers = describeMessageAttachmentMarkers(message);
     return markers.length > 0 ? ` ${markers.join(' ')}` : '';
 }
 

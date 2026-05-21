@@ -4,6 +4,14 @@ import { describe, expect, it } from 'vitest';
 import { GeneralSettingsTemplate } from './general.js';
 import { ConnectionSettingsTemplate } from './connection.js';
 import { ShortcutsSettingsTemplate } from './shortcuts.js';
+import { AppearanceSettingsTemplate } from './appearance.js';
+import { AboutSettingsTemplate } from './about.js';
+import { SettingsPageTemplate } from './index.js';
+import { DOM_IDS, CONFIG_LIMITS } from '../../settings/constants.js';
+import {
+    CONTEXT_RECENT_TURNS_LIMITS,
+    DEFAULT_CONTEXT_RECENT_TURNS,
+} from '../../../../shared/config/constants.js';
 
 describe('settings templates', () => {
     it('moves explanatory copy into compact help buttons', () => {
@@ -19,6 +27,7 @@ describe('settings templates', () => {
         expect(helpKeys).toEqual(
             expect.arrayContaining([
                 'textSelectionDesc',
+                'textSelectionBlacklistDesc',
                 'imageToolsToggleDesc',
                 'accountIndicesDesc',
                 'contextModeDesc',
@@ -68,5 +77,41 @@ describe('settings templates', () => {
         expect(document.getElementById('mcp-server-url').placeholder).toBe(
             'http://127.0.0.1:3006/mcp'
         );
+    });
+
+    it('keeps MCP headers and tool exposure status visible in the server editor', () => {
+        document.body.innerHTML = ConnectionSettingsTemplate;
+
+        const headers = document.getElementById('mcp-headers');
+        expect(headers).toBeTruthy();
+        expect(headers.getAttribute('data-i18n-placeholder')).toBe('mcpHeadersPlaceholder');
+        expect(headers.className).toContain('settings-monospace-textarea');
+        expect(document.getElementById('mcp-tools-summary')).toBeTruthy();
+    });
+
+    it('keeps settings templates free of static inline styles', () => {
+        document.body.innerHTML =
+            GeneralSettingsTemplate +
+            ConnectionSettingsTemplate +
+            AppearanceSettingsTemplate +
+            ShortcutsSettingsTemplate +
+            AboutSettingsTemplate;
+
+        expect(document.querySelectorAll('[style]')).toHaveLength(0);
+    });
+
+    it('keeps settings DOM id constants aligned with rendered templates', () => {
+        document.body.innerHTML = SettingsPageTemplate;
+
+        const missingIds = Object.entries(DOM_IDS)
+            .filter(([, id]) => !document.getElementById(id))
+            .map(([name, id]) => `${name}:${id}`);
+
+        expect(missingIds).toEqual([]);
+    });
+
+    it('shares the recent-turns default with the app-wide setting default', () => {
+        expect(CONFIG_LIMITS.RECENT_TURNS.DEFAULT).toBe(DEFAULT_CONTEXT_RECENT_TURNS);
+        expect(CONFIG_LIMITS.RECENT_TURNS).toEqual(CONTEXT_RECENT_TURNS_LIMITS);
     });
 });

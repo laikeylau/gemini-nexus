@@ -1,5 +1,6 @@
 import { transformMarkdown } from './pipeline.js';
 import { formatT, t } from '../core/i18n.js';
+import { createPrefixedId } from '../../shared/utils/index.js';
 
 const TOOL_OUTPUT_HEADER_PATTERN = /^\[Tool Output:\s*([^\]]+)\]\n?/;
 const TOOL_STEP_FOOTER_PATTERN = /\n\n\[Proceeding to step\s+(\d+)\]\s*$/;
@@ -228,7 +229,7 @@ function createToolDisclosure(contentDiv, text, options = {}) {
     const formattedToolCall = formatToolCallText(options.toolCallText);
     const preview = getOutputPreview(formattedBody);
     const displayName = sanitizeToolName(rawToolName);
-    const regionId = `${TOOL_DISCLOSURE_PREFIX}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const regionId = createPrefixedId(TOOL_DISCLOSURE_PREFIX);
     const expanded = options.isCollapsed === false;
     const hasOutput = formattedBody.trim().length > 0;
 

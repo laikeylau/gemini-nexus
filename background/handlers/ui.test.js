@@ -163,4 +163,35 @@ describe('UIMessageHandler browser control tab ownership', () => {
         );
         expect(chrome.tabs.query).toHaveBeenCalledWith({ windowId: 55 });
     });
+
+    it('reports side panel open failures to the requesting content script', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+        globalThis.chrome = {
+            storage: {
+                local: {
+                    set: vi.fn(() => Promise.resolve()),
+                },
+            },
+            sidePanel: {
+                open: vi.fn(() => Promise.reject(new Error('Panel unavailable'))),
+                setOptions: vi.fn(() => Promise.resolve()),
+            },
+        };
+        const sendResponse = vi.fn();
+        const handler = new UIMessageHandler({}, controlManager, null, null);
+
+        const handled = handler.handle(
+            { action: 'OPEN_SIDE_PANEL' },
+            { tab: { id: 9, windowId: 4 } },
+            sendResponse
+        );
+
+        expect(handled).toBe(true);
+        await vi.waitFor(() =>
+            expect(sendResponse).toHaveBeenCalledWith({
+                status: 'error',
+                error: 'Panel unavailable',
+            })
+        );
+    });
 });

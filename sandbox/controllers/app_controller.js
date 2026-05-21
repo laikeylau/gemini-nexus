@@ -74,9 +74,9 @@ export class AppController {
             this.browserControlActive = !this.browserControlActive;
         }
 
-        const btn = document.getElementById('browser-control-btn');
-        if (btn) {
-            btn.classList.toggle('active', this.browserControlActive);
+        const browserControlButton = document.getElementById('browser-control-btn');
+        if (browserControlButton) {
+            browserControlButton.classList.toggle('active', this.browserControlActive);
         }
 
         // Show/Hide the tab switcher in header
@@ -210,7 +210,8 @@ export class AppController {
     // --- Event Handling ---
 
     async handleIncomingMessage(event) {
-        const { action, payload } = event.data;
+        const { action, payload } = event.data || {};
+        if (!action) return;
 
         if (action === 'RESTORE_SIDEBAR_BEHAVIOR') {
             this.sidebarRestoreBehavior = payload;
@@ -299,7 +300,7 @@ export class AppController {
             return;
         }
 
-        if (action === 'BACKGROUND_MESSAGE') {
+        if (action === 'BACKGROUND_MESSAGE' && payload && typeof payload === 'object') {
             if (payload.action === 'SWITCH_SESSION') {
                 this.switchToSession(payload.sessionId);
                 return;
